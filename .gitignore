@@ -3,4 +3,5 @@ composer.lock
 coverage.xml
 phpcs.xml
 phpunit.xml
+tests/db/*.sqlite
 vendor/
