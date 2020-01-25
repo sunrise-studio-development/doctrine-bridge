@@ -5,7 +5,8 @@ namespace Arus\Doctrine\Bridge\Tests;
 /**
  * Import classes
  */
-use Doctrine\ORM\Repository\RepositoryFactory;
+use Arus\Doctrine\Bridge\RepositoryFactory;
+use Doctrine\ORM\Repository\RepositoryFactory as BaseRepositoryFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -30,7 +31,17 @@ class RepositoryFactoryTest extends TestCase
         );
 
         $this->assertInstanceOf(
+            BaseRepositoryFactory::class,
+            $doctrine->getManager('foo')->getConfiguration()->getRepositoryFactory()
+        );
+
+        $this->assertInstanceOf(
             RepositoryFactory::class,
+            $doctrine->getManager('bar')->getConfiguration()->getRepositoryFactory()
+        );
+
+        $this->assertInstanceOf(
+            BaseRepositoryFactory::class,
             $doctrine->getManager('bar')->getConfiguration()->getRepositoryFactory()
         );
     }
