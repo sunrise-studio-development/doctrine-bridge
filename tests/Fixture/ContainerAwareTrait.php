@@ -9,12 +9,15 @@ use Arus\Doctrine\Bridge\ManagerRegistry;
 use DI\Container;
 use DI\ContainerBuilder;
 use Doctrine\Common\Cache\ArrayCache;
+use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
+use Symfony\Component\Validator\Validation;
 
 /**
  * Import functions
  */
 use function DI\autowire;
 use function DI\create;
+use function DI\factory;
 
 /**
  * ContainerAwareTrait
@@ -23,7 +26,7 @@ trait ContainerAwareTrait
 {
 
     /**
-     * Gets a container
+     * Creates and returns the container
      *
      * @return Container
      */
@@ -63,6 +66,18 @@ trait ContainerAwareTrait
                 'cache' => create(ArrayCache::class),
             ],
         ]);
+
+        $container->set('validator', factory(function ($container) {
+            $builder = Validation::createValidatorBuilder();
+
+            $builder->enableAnnotationMapping();
+
+            $builder->setConstraintValidatorFactory(
+                new ContainerConstraintValidatorFactory($container)
+            );
+
+            return $builder->getValidator();
+        }));
 
         return $container;
     }
