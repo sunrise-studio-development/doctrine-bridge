@@ -154,9 +154,13 @@ class ManagerRegistry extends AbstractManagerRegistry
         return factory(function ($params) {
             $config = Setup::createConfiguration(false, $params['proxyDir'], $params['cache']);
 
-            $config->setMetadataDriverImpl($config->newDefaultAnnotationDriver($params['metadata']['sources'], false));
+            $config->setMetadataDriverImpl(
+                $config->newDefaultAnnotationDriver($params['metadata']['sources'], false)
+            );
 
-            $config->setRepositoryFactory(new RepositoryFactory($this->container));
+            $config->setRepositoryFactory(
+                new RepositoryFactory($this->container)
+            );
 
             return EntityManager::create($params['connection'], $config);
         })->parameter('params', $params);
