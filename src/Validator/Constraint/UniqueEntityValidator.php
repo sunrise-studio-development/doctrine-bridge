@@ -81,13 +81,6 @@ class UniqueEntityValidator extends ConstraintValidator
             $criteria[$fieldName] = $fieldValue;
         }
 
-        // this situation is currently impossible
-        if (empty($criteria)) {
-            // @codeCoverageIgnoreStart
-            return;
-            // @codeCoverageIgnoreEnd
-        }
-
         $result = $repository->findBy($criteria);
 
         if (empty($result)) {
