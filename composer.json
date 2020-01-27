@@ -19,6 +19,7 @@
         "php": "^7.1"
     },
     "require-dev": {
+        "php": "^7.2",
         "arus/php-coding-standard": "^1.0",
         "phpunit/phpunit": "7.5.1",
         "php-di/php-di": "^6.0",
