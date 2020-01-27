@@ -12,3 +12,102 @@
 ```bash
 composer require 'arus/doctrine-bridge:^1.0'
 ```
+
+## Examples of using
+
+The examples use [PHP-DI](http://php-di.org/)
+
+### Doctrine Manager Registry
+
+The DI definitions:
+
+```php
+declare(strict_types=1);
+
+use Arus\Doctrine\Bridge\ManagerRegistry;
+use Doctrine\Common\Cache\ArrayCache;
+
+use function DI\autowire;
+use function DI\create;
+use function DI\env;
+use function DI\get;
+use function DI\string;
+
+return [
+    'doctrine' => autowire(ManagerRegistry::class),
+
+    'doctrine.configuration' => [
+        'default' => [
+            'metadata' => [
+                'sources' => get('doctrine.configuration.default.metadata.sources'),
+            ],
+            'connection' => get('doctrine.configuration.default.connection'),
+            'proxyDir' => get('doctrine.configuration.default.proxyDir'),
+            'cache' => get('doctrine.configuration.default.cache'),
+        ],
+    ],
+
+    'doctrine.configuration.default.metadata.sources' => [
+        string('{app.root}/src/Entity'),
+    ],
+
+    'doctrine.configuration.default.connection' => [
+        'url' => env('DATABASE_URL', 'mysql://user:password@127.0.0.1:3306/acme'),
+    ],
+
+    'doctrine.configuration.default.proxyDir' => null,
+
+    'doctrine.configuration.default.cache' => create(ArrayCache::class),
+];
+```
+
+### Unique Entity Validator
+
+The DI definitions:
+
+```php
+declare(strict_types=1);
+
+use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
+use Symfony\Component\Validator\Validation;
+
+use function DI\factory;
+
+return [
+    'validator' => factory(function ($container) {
+        return Validation::createValidatorBuilder()
+            ->enableAnnotationMapping()
+            ->setConstraintValidatorFactory(
+                new ContainerConstraintValidatorFactory($container)
+            )
+        ->getValidator();
+    }),
+];
+```
+
+Usage example:
+
+```php
+declare(strict_types=1);
+
+namespace App\Entity;
+
+/**
+ * Import classes
+ */
+use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
+
+/**
+ * @UniqueEntity({"foo"})
+ * 
+ * @UniqueEntity({"bar", "baz"})
+ * 
+ * @UniqueEntity({"qux"}, atPath="customPropertyPath")
+ * 
+ * @UniqueEntity({"quux"}, message="The value {{ value }} already exists!")
+ */
+final class Entry
+{
+    // some code...
+}
+```
