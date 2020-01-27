@@ -16,6 +16,7 @@ use Doctrine\Persistence\AbstractManagerRegistry;
  * Import functions
  */
 use function DI\factory;
+use function key;
 use function sprintf;
 
 /**
@@ -50,7 +51,7 @@ class ManagerRegistry extends AbstractManagerRegistry
             $container->set($managers[$name], $this->getManagerFactory($params));
         }
 
-        parent::__construct('ORM', $connections, $managers, 'default', 'default', Proxy::class);
+        parent::__construct('ORM', $connections, $managers, key($connections), key($managers), Proxy::class);
 
         $this->container = $container;
     }

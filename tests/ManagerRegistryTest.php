@@ -33,8 +33,8 @@ class ManagerRegistryTest extends TestCase
 
         $this->assertSame('ORM', $doctrine->getName());
 
-        $this->assertSame('default', $doctrine->getDefaultConnectionName());
-        $this->assertSame('default', $doctrine->getDefaultManagerName());
+        $this->assertSame('foo', $doctrine->getDefaultConnectionName());
+        $this->assertSame('foo', $doctrine->getDefaultManagerName());
     }
 
     /**
