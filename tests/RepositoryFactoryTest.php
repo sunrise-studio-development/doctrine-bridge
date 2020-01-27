@@ -58,9 +58,9 @@ class RepositoryFactoryTest extends TestCase
 
         $doctrine = $container->get('doctrine');
 
-        $repository = $doctrine->getRepository(Fixture\Entity\Entry::class);
+        $repository = $doctrine->getRepository(Fixture\Entity\Foo::class);
 
-        $this->assertSame($repository, $doctrine->getRepository(Fixture\Entity\Entry::class));
+        $this->assertSame($repository, $doctrine->getRepository(Fixture\Entity\Foo::class));
 
         $this->assertSame('foo', $repository->foo);
         $this->assertSame('bar', $repository->bar);

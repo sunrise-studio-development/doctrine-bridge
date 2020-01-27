@@ -8,9 +8,9 @@ namespace Arus\Doctrine\Bridge\Tests\Fixture\Repository;
 use Doctrine\ORM\EntityRepository;
 
 /**
- * EntryRepository
+ * FooRepository
  */
-final class EntryRepository extends EntityRepository
+final class FooRepository extends EntityRepository
 {
 
     /**
