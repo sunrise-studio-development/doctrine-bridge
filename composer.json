@@ -1,7 +1,7 @@
 {
     "name": "arus/doctrine-bridge",
     "homepage": "https://github.com/autorusltd/doctrine-bridge",
-    "description": "Arus // Doctrine Bridge",
+    "description": "Arus // Doctrine Bridge for PHP 7.2+ based on PHP-DI",
     "license": "MIT",
     "keywords": [
         "arus",
