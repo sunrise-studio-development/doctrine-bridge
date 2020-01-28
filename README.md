@@ -1,4 +1,4 @@
-## Arus // Doctrine Bridge
+## Arus // Doctrine Bridge for PHP 7.2+ based on PHP-DI
 
 [![Build Status](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/build.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/build-status/master)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/?branch=master)
@@ -19,7 +19,7 @@ The examples use [PHP-DI](http://php-di.org/)
 
 ### Doctrine Manager Registry
 
-The DI definitions:
+##### The DI definitions:
 
 ```php
 declare(strict_types=1);
@@ -63,7 +63,7 @@ return [
 
 ### Unique Entity Validator
 
-The DI definitions:
+##### The DI definitions:
 
 ```php
 declare(strict_types=1);
@@ -85,7 +85,7 @@ return [
 ];
 ```
 
-Usage example:
+##### Usage example:
 
 ```php
 declare(strict_types=1);
@@ -110,4 +110,39 @@ final class Entry
 {
     // some code...
 }
+```
+
+### Doctrine Commands Provider
+
+##### The DI definitions:
+
+```php
+declare(strict_types=1);
+
+use Arus\Doctrine\Bridge\CommandsProvider;
+
+use function DI\autowire;
+
+return [
+    'doctrine.commands.provider' => autowire(CommandsProvider::class),
+];
+```
+
+##### Usage example:
+
+```php
+// Adds the Doctrine DBAL commands to the Symfony Console Application
+$application->addCommands(
+    $container->get('doctrine.commands.provider')->getDBALCommands()
+);
+
+// Adds the Doctrine ORM commands to the Symfony Console Application
+$application->addCommands(
+    $container->get('doctrine.commands.provider')->getORMCommands()
+);
+
+// Adds the Doctrine Migration commands to the Symfony Console Application
+$application->addCommands(
+    $container->get('doctrine.commands.provider')->getMigrationCommands()
+);
 ```
