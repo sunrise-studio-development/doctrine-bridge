@@ -45,6 +45,20 @@ class CommandsProvider
     }
 
     /**
+     * Gets all commands
+     *
+     * @return Command[]
+     */
+    public function getCommands() : array
+    {
+        return \array_merge(
+            $this->getDBALCommands(),
+            $this->getORMCommands(),
+            $this->getMigrationCommands()
+        );
+    }
+
+    /**
      * Gets commands of the Doctrine DBAL
      *
      * @return Command[]
