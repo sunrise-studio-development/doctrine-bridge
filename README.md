@@ -10,7 +10,7 @@
 ## Installation (via composer)
 
 ```bash
-composer require 'arus/doctrine-bridge:^1.0'
+composer require 'arus/doctrine-bridge:^1.3'
 ```
 
 ## Examples of using
