@@ -6,8 +6,10 @@ namespace Arus\Doctrine\Bridge;
  * Import classes
  */
 use DI\Container;
+use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\ORM\Proxy\Proxy;
 use Doctrine\ORM\Tools\Setup;
+use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\AbstractManagerRegistry;
@@ -18,6 +20,7 @@ use Doctrine\Persistence\AbstractManagerRegistry;
 use function DI\factory;
 use function key;
 use function sprintf;
+use function sys_get_temp_dir;
 
 /**
  * ManagerRegistry
@@ -153,17 +156,37 @@ class ManagerRegistry extends AbstractManagerRegistry
     private function getManagerFactory(array $params)
     {
         return factory(function ($params) {
-            $config = Setup::createConfiguration(false, $params['proxyDir'], $params['cache']);
-
-            $config->setMetadataDriverImpl(
-                $config->newDefaultAnnotationDriver($params['metadata']['sources'], false)
-            );
-
-            $config->setRepositoryFactory(
-                new RepositoryFactory($this->container)
-            );
-
-            return EntityManager::create($params['connection'], $config);
+            return EntityManager::create($params['connection'], $this->createManagerConfiguration($params));
         })->parameter('params', $params);
+    }
+
+    /**
+     * Creates the Doctrine Configuration from the given parameters
+     *
+     * @param array $params
+     *
+     * @return Configuration
+     */
+    private function createManagerConfiguration(array $params) : Configuration
+    {
+        $config = new Configuration();
+
+        $config->setMetadataDriverImpl(
+            $config->newDefaultAnnotationDriver($params['metadata_sources'], false)
+        );
+
+        $config->setMetadataCacheImpl($params['metadata_cache'] ?? new ArrayCache());
+        $config->setQueryCacheImpl($params['query_cache'] ?? new ArrayCache());
+        $config->setResultCacheImpl($params['result_cache'] ?? new ArrayCache());
+
+        $config->setProxyDir($params['proxy_dir'] ?? sys_get_temp_dir());
+        $config->setProxyNamespace($params['proxy_namespace'] ?? 'Acme\\Proxy\\Entity');
+        $config->setAutoGenerateProxyClasses($params['proxy_auto_generate'] ?? false);
+
+        $config->setRepositoryFactory(
+            new RepositoryFactory($this->container)
+        );
+
+        return $config;
     }
 }

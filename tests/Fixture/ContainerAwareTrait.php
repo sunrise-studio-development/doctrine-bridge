@@ -8,7 +8,6 @@ namespace Arus\Doctrine\Bridge\Tests\Fixture;
 use Arus\Doctrine\Bridge\ManagerRegistry;
 use DI\Container;
 use DI\ContainerBuilder;
-use Doctrine\Common\Cache\ArrayCache;
 use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
 use Symfony\Component\Validator\Validation;
 
@@ -16,7 +15,6 @@ use Symfony\Component\Validator\Validation;
  * Import functions
  */
 use function DI\autowire;
-use function DI\create;
 use function DI\factory;
 
 /**
@@ -42,28 +40,22 @@ trait ContainerAwareTrait
 
         $container->set('doctrine.configuration', [
             'foo' => [
-                'metadata' => [
-                    'sources' => [
-                        __DIR__ . '/Entity',
-                    ],
-                ],
                 'connection' => [
                     'url' => 'sqlite:///' . __DIR__ . '/../db/foo.sqlite',
                 ],
-                'proxyDir' => null,
-                'cache' => create(ArrayCache::class),
+                'metadata_sources' => [
+                    __DIR__ . '/Entity',
+                ],
+                'proxy_auto_generate' => false,
             ],
             'bar' => [
-                'metadata' => [
-                    'sources' => [
-                        __DIR__ . '/Entity',
-                    ],
-                ],
                 'connection' => [
                     'url' => 'sqlite:///' . __DIR__ . '/../db/bar.sqlite',
                 ],
-                'proxyDir' => null,
-                'cache' => create(ArrayCache::class),
+                'metadata_sources' => [
+                    __DIR__ . '/Entity',
+                ],
+                'proxy_auto_generate' => false,
             ],
         ]);
 
