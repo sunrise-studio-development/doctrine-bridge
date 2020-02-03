@@ -180,7 +180,7 @@ class ManagerRegistry extends AbstractManagerRegistry
         $config->setResultCacheImpl($params['result_cache'] ?? new ArrayCache());
 
         $config->setProxyDir($params['proxy_dir'] ?? sys_get_temp_dir());
-        $config->setProxyNamespace($params['proxy_namespace'] ?? 'Acme\\Proxy\\Entity');
+        $config->setProxyNamespace($params['proxy_namespace'] ?? 'DoctrineProxies');
         $config->setAutoGenerateProxyClasses($params['proxy_auto_generate'] ?? false);
 
         $config->setRepositoryFactory(
