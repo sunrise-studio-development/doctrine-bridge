@@ -28,6 +28,25 @@ class CommandsProvider
 {
 
     /**
+     * @var array
+     */
+    private const MIGRATIONS_CONFIGURATION_METHOD_MAP = [
+        'name'                       => 'setName',
+        'table_name'                 => 'setMigrationsTableName',
+        'column_name'                => 'setMigrationsColumnName',
+        'column_length'              => 'setMigrationsColumnLength',
+        'executed_at_column_name'    => 'setMigrationsExecutedAtColumnName',
+        'directory'                  => 'setMigrationsDirectory',
+        'namespace'                  => 'setMigrationsNamespace',
+        'organize_by_year'           => 'setMigrationsAreOrganizedByYear',
+        'organize_by_year_and_month' => 'setMigrationsAreOrganizedByYearAndMonth',
+        'custom_template'            => 'setCustomTemplate',
+        'is_dry_run'                 => 'setIsDryRun',
+        'all_or_nothing'             => 'setAllOrNothing',
+        'check_database_platform'    => 'setCheckDatabasePlatform',
+    ];
+
+    /**
      * The application container
      *
      * @var Container
@@ -203,18 +222,24 @@ class CommandsProvider
      */
     private function createMigrationConfiguration() : MigrationConfiguration
     {
-        $input = new ArgvInput();
+        $parameters = [];
+        if ($this->container->has('doctrine.configuration.migrations')) {
+            $parameters = $this->container->get('doctrine.configuration.migrations');
+        }
 
-        $doctrine = $this->container->get('doctrine');
-
-        $connection = $doctrine->getConnection(
-            $input->getParameterOption(['--service'], null)
+        $configuration = new MigrationConfiguration(
+            $this->container->get('doctrine')->getConnection(
+                (new ArgvInput)->getParameterOption(['--service'], null)
+            )
         );
 
-        $configuration = new MigrationConfiguration($connection);
-        $configuration->setMigrationsNamespace('App\Migration');
-        $configuration->setMigrationsDirectory('src/Migration');
-        $configuration->setAllOrNothing(true);
+        // default required parameters...
+        $configuration->setMigrationsDirectory('database/migrations');
+        $configuration->setMigrationsNamespace('DoctrineMigrations');
+
+        foreach (self::MIGRATIONS_CONFIGURATION_METHOD_MAP as $key => $method) {
+            isset($parameters[$key]) and $configuration->{$method}($parameters[$key]);
+        }
 
         return $configuration;
     }
