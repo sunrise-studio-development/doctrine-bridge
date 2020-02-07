@@ -196,4 +196,14 @@ return [
 ];
 ```
 
+### Doctrine Array Hydrator
 
+https://github.com/pmill/doctrine-array-hydrator
+
+```php
+$hydrator = $container->get('doctrine')->getHydrator();
+
+$hydrator->hydrate(Entity::class, [
+    'name' => 'foo bar',
+]);
+```
