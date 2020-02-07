@@ -12,6 +12,8 @@ use Doctrine\ORM\Events;
 use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\AbstractManagerRegistry;
 use PHPUnit\Framework\TestCase;
+use pmill\Doctrine\Hydrator\ArrayHydrator;
+use InvalidArgumentException;
 
 /**
  * ManagerRegistryTest
@@ -193,5 +195,24 @@ class ManagerRegistryTest extends TestCase
         $this->expectExceptionMessage('Unknown Entity namespace alias \'baz\'.');
 
         $doctrine->getAliasNamespace('baz');
+    }
+
+    /**
+     * @return void
+     */
+    public function testHydrator() : void
+    {
+        $container = $this->getContainer();
+
+        $doctrine = $container->get('doctrine');
+
+        $hydrator = $doctrine->getHydrator();
+
+        $this->assertInstanceOf(ArrayHydrator::class, $hydrator);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Doctrine ORM Manager named "undefined" does not exist.');
+
+        $doctrine->getHydrator('undefined');
     }
 }

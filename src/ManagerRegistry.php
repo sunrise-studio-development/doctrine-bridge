@@ -13,6 +13,7 @@ use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\AbstractManagerRegistry;
+use pmill\Doctrine\Hydrator\ArrayHydrator;
 
 /**
  * Import functions
@@ -114,6 +115,20 @@ class ManagerRegistry extends AbstractManagerRegistry
         }
 
         throw ORMException::unknownEntityNamespace($alias);
+    }
+
+    /**
+     * Gets an array hydrator
+     *
+     * @param string $name
+     *
+     * @return ArrayHydrator
+     *
+     * @link https://github.com/pmill/doctrine-array-hydrator
+     */
+    public function getHydrator(string $name = null) : ArrayHydrator
+    {
+        return new ArrayHydrator($this->getManager($name));
     }
 
     /**
