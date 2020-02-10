@@ -7,7 +7,7 @@
 [![Total Downloads](https://poser.pugx.org/arus/doctrine-bridge/downloads)](https://packagist.org/packages/arus/doctrine-bridge)
 [![License](https://poser.pugx.org/arus/doctrine-bridge/license)](https://packagist.org/packages/arus/doctrine-bridge)
 
-## Installation (via composer)
+## Installation
 
 ```bash
 composer require 'arus/doctrine-bridge:^1.7'
@@ -19,7 +19,7 @@ The examples use [PHP-DI](http://php-di.org/)
 
 ### Doctrine Manager Registry
 
-##### The DI definitions:
+##### The DI definitions
 
 ```php
 declare(strict_types=1);
@@ -66,7 +66,7 @@ return [
 
 ### Doctrine Migrations
 
-##### The DI definitions:
+##### The DI definitions
 
 ```php
 declare(strict_types=1);
@@ -109,7 +109,7 @@ return [
 
 ### Doctrine Commands Provider
 
-##### The DI definitions:
+##### The DI definitions
 
 ```php
 declare(strict_types=1);
@@ -137,7 +137,7 @@ $application->addCommands(
 
 ### Unique Entity Validator
 
-##### The DI definitions:
+##### The DI definitions
 
 ```php
 declare(strict_types=1);
@@ -159,7 +159,7 @@ return [
 ];
 ```
 
-##### Usage example:
+##### Usage example
 
 ```php
 declare(strict_types=1);
