@@ -10,7 +10,7 @@
 ## Installation (via composer)
 
 ```bash
-composer require 'arus/doctrine-bridge:^1.5'
+composer require 'arus/doctrine-bridge:^1.6'
 ```
 
 ## Examples of using
@@ -64,6 +64,69 @@ return [
 ];
 ```
 
+### Doctrine Migrations
+
+##### The DI definitions:
+
+```php
+declare(strict_types=1);
+
+use function DI\get;
+use function DI\string;
+
+return [
+    'migrations.configuration' => [
+        'name' => get('migrations.configuration.name'),
+        'table_name' => get('migrations.configuration.table_name'),
+        'column_name' => get('migrations.configuration.column_name'),
+        'column_length' => get('migrations.configuration.column_length'),
+        'executed_at_column_name' => get('migrations.configuration.executed_at_column_name'),
+        'directory' => get('migrations.configuration.directory'),
+        'namespace' => get('migrations.configuration.namespace'),
+        'organize_by_year' => get('migrations.configuration.organize_by_year'),
+        'organize_by_year_and_month' => get('migrations.configuration.organize_by_year_and_month'),
+        'custom_template' => get('migrations.configuration.custom_template'),
+        'is_dry_run' => get('migrations.configuration.is_dry_run'),
+        'all_or_nothing' => get('migrations.configuration.all_or_nothing'),
+        'check_database_platform' => get('migrations.configuration.check_database_platform'),
+    ],
+
+    'migrations.configuration.name' => null,
+    'migrations.configuration.table_name' => null,
+    'migrations.configuration.column_name' => null,
+    'migrations.configuration.column_length' => null,
+    'migrations.configuration.executed_at_column_name' => null,
+    'migrations.configuration.directory' => string('{app.root}/database/migrations'),
+    'migrations.configuration.namespace' => 'DoctrineMigrations',
+    'migrations.configuration.organize_by_year' => null,
+    'migrations.configuration.organize_by_year_and_month' => null,
+    'migrations.configuration.custom_template' => null,
+    'migrations.configuration.is_dry_run' => null,
+    'migrations.configuration.all_or_nothing' => null,
+    'migrations.configuration.check_database_platform' => null,
+];
+```
+
+### Doctrine Commands Provider
+
+##### The DI definitions:
+
+```php
+declare(strict_types=1);
+
+use Arus\Doctrine\Bridge\CommandsProvider;
+
+use function DI\decorate;
+
+return [
+    'commands' => decorate(function ($previous, $container) {
+        $provider = new CommandsProvider($container);
+
+        return array_merge($previous, $provider->getCommands());
+    }),
+];
+```
+
 ### Unique Entity Validator
 
 ##### The DI definitions:
@@ -109,91 +172,10 @@ use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
  * 
  * @UniqueEntity({"quux"}, message="The value {{ value }} already exists!")
  */
-final class Entry
+class Entry
 {
     // some code...
 }
-```
-
-### Doctrine Commands Provider
-
-##### The DI definitions:
-
-```php
-declare(strict_types=1);
-
-use Arus\Doctrine\Bridge\CommandsProvider;
-
-use function DI\autowire;
-
-return [
-    'doctrine.commands.provider' => autowire(CommandsProvider::class),
-];
-```
-
-##### Usage example:
-
-```php
-// Adds the Doctrine DBAL commands to the Symfony Console Application
-$application->addCommands(
-    $container->get('doctrine.commands.provider')->getDBALCommands()
-);
-
-// Adds the Doctrine ORM commands to the Symfony Console Application
-$application->addCommands(
-    $container->get('doctrine.commands.provider')->getORMCommands()
-);
-
-// Adds the Doctrine Migration commands to the Symfony Console Application
-$application->addCommands(
-    $container->get('doctrine.commands.provider')->getMigrationCommands()
-);
-
-// or adds all commands...
-$application->addCommands(
-    $container->get('doctrine.commands.provider')->getAll()
-);
-```
-
-### Doctrine migrations configure...
-
-```php
-declare(strict_types=1);
-
-use function DI\get;
-use function DI\string;
-
-return [
-    'doctrine.configuration.migrations' => [
-        'name' => get('doctrine.configuration.migrations.name'),
-        'table_name' => get('doctrine.configuration.migrations.table_name'),
-        'column_name' => get('doctrine.configuration.migrations.column_name'),
-        'column_length' => get('doctrine.configuration.migrations.column_length'),
-        'executed_at_column_name' => get('doctrine.configuration.migrations.executed_at_column_name'),
-        'directory' => get('doctrine.configuration.migrations.directory'),
-        'namespace' => get('doctrine.configuration.migrations.namespace'),
-        'organize_by_year' => get('doctrine.configuration.migrations.organize_by_year'),
-        'organize_by_year_and_month' => get('doctrine.configuration.migrations.organize_by_year_and_month'),
-        'custom_template' => get('doctrine.configuration.migrations.custom_template'),
-        'is_dry_run' => get('doctrine.configuration.migrations.is_dry_run'),
-        'all_or_nothing' => get('doctrine.configuration.migrations.all_or_nothing'),
-        'check_database_platform' => get('doctrine.configuration.migrations.check_database_platform'),
-    ],
-
-    'doctrine.configuration.migrations.name' => null,
-    'doctrine.configuration.migrations.table_name' => null,
-    'doctrine.configuration.migrations.column_name' => null,
-    'doctrine.configuration.migrations.column_length' => null,
-    'doctrine.configuration.migrations.executed_at_column_name' => null,
-    'doctrine.configuration.migrations.directory' => string('{app.root}/database/migrations'),
-    'doctrine.configuration.migrations.namespace' => 'DoctrineMigrations',
-    'doctrine.configuration.migrations.organize_by_year' => null,
-    'doctrine.configuration.migrations.organize_by_year_and_month' => null,
-    'doctrine.configuration.migrations.custom_template' => null,
-    'doctrine.configuration.migrations.is_dry_run' => null,
-    'doctrine.configuration.migrations.all_or_nothing' => null,
-    'doctrine.configuration.migrations.check_database_platform' => null,
-];
 ```
 
 ### Doctrine Array Hydrator

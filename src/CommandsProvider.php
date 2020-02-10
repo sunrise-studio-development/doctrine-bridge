@@ -19,6 +19,7 @@ use Symfony\Component\Console\Input\InputOption;
 /**
  * Import functions
  */
+use function array_merge;
 use function get_class;
 
 /**
@@ -70,7 +71,7 @@ class CommandsProvider
      */
     public function getCommands() : array
     {
-        return \array_merge(
+        return array_merge(
             $this->getDBALCommands(),
             $this->getORMCommands(),
             $this->getMigrationCommands()
@@ -223,8 +224,10 @@ class CommandsProvider
     private function createMigrationConfiguration() : MigrationConfiguration
     {
         $parameters = [];
-        if ($this->container->has('doctrine.configuration.migrations')) {
+        if ($this->container->has('doctrine.configuration.migrations')) { // for versions <= 1.5
             $parameters = $this->container->get('doctrine.configuration.migrations');
+        } elseif ($this->container->has('migrations.configuration')) { // for versions >= 1.6
+            $parameters = $this->container->get('migrations.configuration');
         }
 
         $configuration = new MigrationConfiguration(
