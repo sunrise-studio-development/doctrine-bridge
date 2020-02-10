@@ -15,6 +15,9 @@ use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\AbstractManagerRegistry;
 use pmill\Doctrine\Hydrator\ArrayHydrator;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
+use Symfony\Component\Validator\Validation;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Import functions
@@ -31,11 +34,14 @@ class ManagerRegistry extends AbstractManagerRegistry
 {
 
     /**
-     * The application container
-     *
      * @var Container
      */
     private $container;
+
+    /**
+     * @var ValidatorInterface
+     */
+    private $validator;
 
     /**
      * Constructor of the class
@@ -142,6 +148,25 @@ class ManagerRegistry extends AbstractManagerRegistry
     public function getHydrator(string $name = null) : ArrayHydrator
     {
         return new ArrayHydrator($this->getManager($name));
+    }
+
+    /**
+     * Gets entities validator
+     *
+     * @return ValidatorInterface
+     */
+    public function getValidator() : ValidatorInterface
+    {
+        if (empty($this->validator)) {
+            $this->validator = Validation::createValidatorBuilder()
+                ->enableAnnotationMapping()
+                ->setConstraintValidatorFactory(
+                    new ContainerConstraintValidatorFactory($this->container)
+                )
+            ->getValidator();
+        }
+
+        return $this->validator;
     }
 
     /**
