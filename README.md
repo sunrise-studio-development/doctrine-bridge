@@ -127,7 +127,7 @@ return [
 ];
 ```
 
-##### Or through the registry manager
+##### or you can get all the commands through the manager
 
 ```php
 $application->addCommands(
@@ -157,6 +157,12 @@ return [
         ->getValidator();
     }),
 ];
+```
+
+##### or you can get the validator through the manager
+
+```php
+$validator = $container->get('doctrine')->getValidator();
 ```
 
 ##### Usage example
