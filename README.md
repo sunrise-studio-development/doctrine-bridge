@@ -10,7 +10,7 @@
 ## Installation (via composer)
 
 ```bash
-composer require 'arus/doctrine-bridge:^1.6'
+composer require 'arus/doctrine-bridge:^1.7'
 ```
 
 ## Examples of using
@@ -125,6 +125,14 @@ return [
         return array_merge($previous, $provider->getCommands());
     }),
 ];
+```
+
+##### Or through the registry manager
+
+```php
+$application->addCommands(
+    $container->get('doctrine')->getCommands()
+);
 ```
 
 ### Unique Entity Validator
