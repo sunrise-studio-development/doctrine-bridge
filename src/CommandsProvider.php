@@ -224,10 +224,10 @@ class CommandsProvider
     private function createMigrationConfiguration() : MigrationConfiguration
     {
         $parameters = [];
-        if ($this->container->has('migrations.configuration')) { // for versions >= 1.6
-            $parameters = $this->container->get('migrations.configuration');
-        } elseif ($this->container->has('doctrine.configuration.migrations')) { // for versions <= 1.5
+        if ($this->container->has('doctrine.configuration.migrations')) { // for versions <= 1.5
             $parameters = $this->container->get('doctrine.configuration.migrations');
+        } elseif ($this->container->has('migrations.configuration')) { // for versions >= 1.6
+            $parameters = $this->container->get('migrations.configuration');
         }
 
         $configuration = new MigrationConfiguration(
