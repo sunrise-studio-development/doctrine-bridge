@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\AbstractManagerRegistry;
 use pmill\Doctrine\Hydrator\ArrayHydrator;
+use Symfony\Component\Console\Command\Command;
 
 /**
  * Import functions
@@ -118,6 +119,18 @@ class ManagerRegistry extends AbstractManagerRegistry
     }
 
     /**
+     * Gets CLI commands
+     *
+     * @return Command[]
+     */
+    public function getCommands() : array
+    {
+        $provider = new CommandsProvider($this->container);
+
+        return $provider->getCommands();
+    }
+
+    /**
      * Gets an array hydrator
      *
      * @param string $name
@@ -198,9 +211,7 @@ class ManagerRegistry extends AbstractManagerRegistry
         $config->setProxyNamespace($params['proxy_namespace'] ?? 'DoctrineProxies');
         $config->setAutoGenerateProxyClasses($params['proxy_auto_generate'] ?? false);
 
-        $config->setRepositoryFactory(
-            new RepositoryFactory($this->container)
-        );
+        $config->setRepositoryFactory(new RepositoryFactory($this->container));
 
         return $config;
     }
