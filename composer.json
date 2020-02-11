@@ -17,7 +17,7 @@
     ],
     "require": {
         "php": "^7.2",
-        "pmill/doctrine-array-hydrator": "^0.1"
+        "fenric/doctrine-array-hydrator": "^0.1.8"
     },
     "require-dev": {
         "arus/php-coding-standard": "^1.0",
