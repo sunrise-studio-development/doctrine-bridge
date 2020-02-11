@@ -321,6 +321,10 @@ class UniqueEntityValidatorTest extends TestCase
 
         $manager->flush();
 
+        // update...
+        $violations = $validator->validate($entry);
+        $this->assertCount(0, $violations);
+
         $violations = $validator->validate(new Fixture\Entity\Baz([
             'bar' => 'bar.value',
             'baz' => 'baz.value',

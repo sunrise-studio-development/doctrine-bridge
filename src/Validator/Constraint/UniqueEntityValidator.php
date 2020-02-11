@@ -87,6 +87,12 @@ class UniqueEntityValidator extends ConstraintValidator
             return;
         }
 
+        foreach ($result as $found) {
+            if ($entity === $found) {
+                return;
+            }
+        }
+
         $atPath = $constraint->atPath ?? reset($constraint->fields);
         $invalidValue = $criteria[$atPath] ?? reset($criteria);
 
