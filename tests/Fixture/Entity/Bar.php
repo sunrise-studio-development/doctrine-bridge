@@ -8,9 +8,7 @@ namespace Arus\Doctrine\Bridge\Tests\Fixture\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * @ORM\Entity(
- *   repositoryClass="Arus\Doctrine\Bridge\Tests\Fixture\Repository\BarRepository",
- * )
+ * @ORM\Entity()
  */
 final class Bar
 {

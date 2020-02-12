@@ -9,9 +9,7 @@ use Arus\Doctrine\Bridge\Validator\Constraint as Assert;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * @ORM\Entity(
- *   repositoryClass="Arus\Doctrine\Bridge\Tests\Fixture\Repository\BazRepository",
- * )
+ * @ORM\Entity()
  *
  * @Assert\UniqueEntity({"foo"})
  *
