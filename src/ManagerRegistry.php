@@ -13,7 +13,6 @@ use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\AbstractManagerRegistry;
-use pmill\Doctrine\Hydrator\ArrayHydrator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
 use Symfony\Component\Validator\Validation;
@@ -29,6 +28,8 @@ use function sys_get_temp_dir;
 
 /**
  * ManagerRegistry
+ *
+ * @TODO transfer logic from the `createManagerConfiguration` method to a factory...
  */
 class ManagerRegistry extends AbstractManagerRegistry
 {
