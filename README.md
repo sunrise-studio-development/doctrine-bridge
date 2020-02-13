@@ -10,7 +10,7 @@
 ## Installation
 
 ```bash
-composer require 'arus/doctrine-bridge:^1.8'
+composer require 'arus/doctrine-bridge:^1.10'
 ```
 
 ## Examples of using
@@ -157,12 +157,6 @@ return [
         ->getValidator();
     }),
 ];
-```
-
-##### or you can get the validator through the manager
-
-```php
-$validator = $container->get('doctrine')->getValidator();
 ```
 
 ##### Usage example
