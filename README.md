@@ -46,6 +46,7 @@ return [
             'proxy_dir' => get('doctrine.configuration.default.proxy_dir'),
             'proxy_namespace' => get('doctrine.configuration.default.proxy_namespace'),
             'proxy_auto_generate' => get('doctrine.configuration.default.proxy_auto_generate'),
+            'sql_logger' => get('doctrine.configuration.default.sql_logger'),
         ],
     ],
 
@@ -61,6 +62,7 @@ return [
     'doctrine.configuration.default.proxy_dir' => string('{app.root}/database/proxies'),
     'doctrine.configuration.default.proxy_namespace' => 'DoctrineProxies',
     'doctrine.configuration.default.proxy_auto_generate' => true,
+    'doctrine.configuration.default.sql_logger' => null,
 ];
 ```
 
