@@ -178,37 +178,18 @@ class ManagerRegistry extends AbstractManagerRegistry
     {
         $config = new Configuration();
 
-        $config->setMetadataDriverImpl(
-            $config->newDefaultAnnotationDriver($params['metadata_sources'], false)
-        );
+        $config->setRepositoryFactory(new RepositoryFactory($this->container));
+        $config->setMetadataDriverImpl($config->newDefaultAnnotationDriver($params['metadata_sources'], false));
 
-        $config->setMetadataCacheImpl(
-            $params['metadata_cache'] ?? new ArrayCache()
-        );
+        $config->setMetadataCacheImpl($params['metadata_cache'] ?? new ArrayCache());
+        $config->setQueryCacheImpl($params['query_cache'] ?? new ArrayCache());
+        $config->setResultCacheImpl($params['result_cache'] ?? new ArrayCache());
 
-        $config->setQueryCacheImpl(
-            $params['query_cache'] ?? new ArrayCache()
-        );
+        $config->setProxyDir($params['proxy_dir'] ?? sys_get_temp_dir());
+        $config->setProxyNamespace($params['proxy_namespace'] ?? 'DoctrineProxies');
+        $config->setAutoGenerateProxyClasses($params['proxy_auto_generate'] ?? false);
 
-        $config->setResultCacheImpl(
-            $params['result_cache'] ?? new ArrayCache()
-        );
-
-        $config->setProxyDir(
-            $params['proxy_dir'] ?? sys_get_temp_dir()
-        );
-
-        $config->setProxyNamespace(
-            $params['proxy_namespace'] ?? 'DoctrineProxies'
-        );
-
-        $config->setAutoGenerateProxyClasses(
-            $params['proxy_auto_generate'] ?? false
-        );
-
-        $config->setRepositoryFactory(
-            new RepositoryFactory($this->container)
-        );
+        $config->setSQLLogger($params['sql_logger'] ?? null);
 
         return EntityManager::create($params['connection'], $config);
     }
