@@ -7,16 +7,16 @@ namespace Arus\Doctrine\Bridge;
  */
 use DI\Container;
 use Doctrine\Common\Cache\ArrayCache;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Proxy\Proxy;
-use Doctrine\ORM\Tools\Setup;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\AbstractManagerRegistry;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
-use Symfony\Component\Validator\Validation;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Ramsey\Uuid\Doctrine\UuidType;
+use Ramsey\Uuid\Doctrine\UuidBinaryType;
+use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
 
 /**
  * Import functions
@@ -28,8 +28,6 @@ use function sys_get_temp_dir;
 
 /**
  * ManagerRegistry
- *
- * @TODO transfer logic from the `createManagerConfiguration` method to a factory...
  */
 class ManagerRegistry extends AbstractManagerRegistry
 {
@@ -38,11 +36,6 @@ class ManagerRegistry extends AbstractManagerRegistry
      * @var Container
      */
     private $container;
-
-    /**
-     * @var ValidatorInterface
-     */
-    private $validator;
 
     /**
      * Constructor of the class
@@ -59,11 +52,18 @@ class ManagerRegistry extends AbstractManagerRegistry
             $connections[$name] = sprintf('doctrine.connection.%s', $name);
             $managers[$name] = sprintf('doctrine.manager.%s', $name);
 
-            $container->set($connections[$name], $this->getConnectionFactory($name));
-            $container->set($managers[$name], $this->getManagerFactory($params));
+            $container->set($connections[$name], factory(function ($name) {
+                return $this->getManager($name)->getConnection();
+            })->parameter('name', $name));
+
+            $container->set($managers[$name], factory(function ($params) {
+                return $this->createManager($params);
+            })->parameter('params', $params));
         }
 
         parent::__construct('ORM', $connections, $managers, key($connections), key($managers), Proxy::class);
+
+        $this->registerUuidType();
 
         $this->container = $container;
     }
@@ -128,7 +128,9 @@ class ManagerRegistry extends AbstractManagerRegistry
     /**
      * Gets CLI commands
      *
-     * @return Command[]
+     * @return \Symfony\Component\Console\Command\Command[]
+     *
+     * @see CommandsProvider::getCommands()
      */
     public function getCommands() : array
     {
@@ -152,25 +154,6 @@ class ManagerRegistry extends AbstractManagerRegistry
     }
 
     /**
-     * Gets entities validator
-     *
-     * @return ValidatorInterface
-     */
-    public function getValidator() : ValidatorInterface
-    {
-        if (empty($this->validator)) {
-            $this->validator = Validation::createValidatorBuilder()
-                ->enableAnnotationMapping()
-                ->setConstraintValidatorFactory(
-                    new ContainerConstraintValidatorFactory($this->container)
-                )
-            ->getValidator();
-        }
-
-        return $this->validator;
-    }
-
-    /**
      * {@inheritDoc}
      */
     protected function getService($name)
@@ -187,41 +170,11 @@ class ManagerRegistry extends AbstractManagerRegistry
     }
 
     /**
-     * Returns a factory for Doctrine Connection
-     *
-     * @param string $name
-     *
-     * @return object See `DI\factory()`
-     */
-    private function getConnectionFactory(string $name)
-    {
-        return factory(function ($name) {
-            return $this->getManager($name)->getConnection();
-        })->parameter('name', $name);
-    }
-
-    /**
-     * Returns a factory for Doctrine Manager
-     *
      * @param array $params
      *
-     * @return object See `DI\factory()`
+     * @return EntityManagerInterface
      */
-    private function getManagerFactory(array $params)
-    {
-        return factory(function ($params) {
-            return EntityManager::create($params['connection'], $this->createManagerConfiguration($params));
-        })->parameter('params', $params);
-    }
-
-    /**
-     * Creates the Doctrine Configuration from the given parameters
-     *
-     * @param array $params
-     *
-     * @return Configuration
-     */
-    private function createManagerConfiguration(array $params) : Configuration
+    private function createManager(array $params) : EntityManagerInterface
     {
         $config = new Configuration();
 
@@ -229,16 +182,52 @@ class ManagerRegistry extends AbstractManagerRegistry
             $config->newDefaultAnnotationDriver($params['metadata_sources'], false)
         );
 
-        $config->setMetadataCacheImpl($params['metadata_cache'] ?? new ArrayCache());
-        $config->setQueryCacheImpl($params['query_cache'] ?? new ArrayCache());
-        $config->setResultCacheImpl($params['result_cache'] ?? new ArrayCache());
+        $config->setMetadataCacheImpl(
+            $params['metadata_cache'] ?? new ArrayCache()
+        );
 
-        $config->setProxyDir($params['proxy_dir'] ?? sys_get_temp_dir());
-        $config->setProxyNamespace($params['proxy_namespace'] ?? 'DoctrineProxies');
-        $config->setAutoGenerateProxyClasses($params['proxy_auto_generate'] ?? false);
+        $config->setQueryCacheImpl(
+            $params['query_cache'] ?? new ArrayCache()
+        );
 
-        $config->setRepositoryFactory(new RepositoryFactory($this->container));
+        $config->setResultCacheImpl(
+            $params['result_cache'] ?? new ArrayCache()
+        );
 
-        return $config;
+        $config->setProxyDir(
+            $params['proxy_dir'] ?? sys_get_temp_dir()
+        );
+
+        $config->setProxyNamespace(
+            $params['proxy_namespace'] ?? 'DoctrineProxies'
+        );
+
+        $config->setAutoGenerateProxyClasses(
+            $params['proxy_auto_generate'] ?? false
+        );
+
+        $config->setRepositoryFactory(
+            new RepositoryFactory($this->container)
+        );
+
+        return EntityManager::create($params['connection'], $config);
+    }
+
+    /**
+     * @return void
+     */
+    private function registerUuidType() : void
+    {
+        Type::hasType(UuidType::NAME) ?
+        Type::overrideType(UuidType::NAME, UuidType::class) :
+        Type::addType(UuidType::NAME, UuidType::class);
+
+        Type::hasType(UuidBinaryType::NAME) ?
+        Type::overrideType(UuidBinaryType::NAME, UuidBinaryType::class) :
+        Type::addType(UuidBinaryType::NAME, UuidBinaryType::class);
+
+        Type::hasType(UuidBinaryOrderedTimeType::NAME) ?
+        Type::overrideType(UuidBinaryOrderedTimeType::NAME, UuidBinaryOrderedTimeType::class) :
+        Type::addType(UuidBinaryOrderedTimeType::NAME, UuidBinaryOrderedTimeType::class);
     }
 }
