@@ -20,8 +20,6 @@ use function ucwords;
 
 /**
  * ArrayHydrator
- *
- * @TODO (idea) check the type of values...
  */
 class ArrayHydrator extends BaseArrayHydrator
 {
