@@ -30,6 +30,10 @@ class ArrayHydratorTest extends TestCase
                 ['name' => 'bar'],
                 ['name' => 'baz'],
             ],
+            'logotypes' => [
+                ['name' => 'qux'],
+                ['name' => 'quux'],
+            ],
         ]);
 
         $this->assertSame('foo:setter', $brand->getName());
@@ -37,5 +41,9 @@ class ArrayHydratorTest extends TestCase
         $this->assertCount(2, $brand->getAliases());
         $this->assertSame('bar:setter:adder:setter', $brand->getAliases()->get(0)->getName());
         $this->assertSame('baz:setter:adder:setter', $brand->getAliases()->get(1)->getName());
+
+        $this->assertCount(2, $brand->getLogotypes());
+        $this->assertSame('qux:setter:adder:setter', $brand->getLogotypes()->get(0)->getName());
+        $this->assertSame('quux:setter:adder:setter', $brand->getLogotypes()->get(1)->getName());
     }
 }

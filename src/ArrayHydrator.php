@@ -7,7 +7,8 @@ namespace Arus\Doctrine\Bridge;
  */
 use pmill\Doctrine\Hydrator\ArrayHydrator as BaseArrayHydrator;
 use Symfony\Component\Inflector\Inflector;
-use ReflectionObject;
+use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * Import functions
@@ -29,19 +30,10 @@ class ArrayHydrator extends BaseArrayHydrator
      */
     protected function hydrateToManyAssociation($entity, $propertyName, $mapping, $value)
     {
-        $entityRef = new ReflectionObject($entity);
+        $entityRef = new ReflectionClass($entity);
 
-        $adderName = $this->createAdderNameForPropertyName($propertyName);
-        if (!$entityRef->hasMethod($adderName)) {
-            return $entity;
-        }
-
-        $adderRef = $entityRef->getMethod($adderName);
-        if (!($adderRef->isPublic() && !$adderRef->isStatic())) {
-            return $entity;
-        }
-
-        if (0 === $adderRef->getNumberOfParameters()) {
+        $adderRef = $this->findAdderForPropertyName($propertyName, $entityRef);
+        if (null === $adderRef) {
             return $entity;
         }
 
@@ -65,19 +57,12 @@ class ArrayHydrator extends BaseArrayHydrator
      */
     protected function setProperty($entity, $propertyName, $value, $entityRef = null)
     {
-        $entityRef = $entityRef ?? new ReflectionObject($entity);
-
-        $setterName = $this->createSetterNameForPropertyName($propertyName);
-        if (!$entityRef->hasMethod($setterName)) {
-            return $entity;
+        if (null === $entityRef) {
+            $entityRef = new ReflectionClass($entity);
         }
 
-        $setterRef = $entityRef->getMethod($setterName);
-        if (!($setterRef->isPublic() && !$setterRef->isStatic())) {
-            return $entity;
-        }
-
-        if (0 === $setterRef->getNumberOfParameters()) {
+        $setterRef = $this->findSetterForPropertyName($propertyName, $entityRef);
+        if (null === $setterRef) {
             return $entity;
         }
 
@@ -87,45 +72,71 @@ class ArrayHydrator extends BaseArrayHydrator
     }
 
     /**
-     * Creates an adder name for the given property name
+     * Looks for an adder for the given property name
      *
      * @param string $propertyName
+     * @param ReflectionClass $classRef
      *
-     * @return string
+     * @return null|ReflectionMethod
      */
-    private function createAdderNameForPropertyName(string $propertyName) : string
+    private function findAdderForPropertyName(string $propertyName, ReflectionClass $classRef) : ?ReflectionMethod
     {
-        $propertyName = $this->convertPropertyNameFromSnakeCaseToCamelCase($propertyName);
+        $propertyName = $this->camelizePropertyName($propertyName);
 
         // Sometimes it's not possible to determine a unique singular/plural form for the given word.
         // In those cases, the methods return an array with all the possible forms.
-        $singularPropertyName = (array) Inflector::singularize($propertyName);
+        $singularPropertyNames = (array) Inflector::singularize($propertyName);
 
-        return 'add' . $singularPropertyName[0];
+        foreach ($singularPropertyNames as $singularPropertyName) {
+            $adderName = 'add' . $singularPropertyName;
+            if (!$classRef->hasMethod($adderName)) {
+                continue;
+            }
+
+            $adderRef = $classRef->getMethod($adderName);
+            if (!$adderRef->isPublic() || $adderRef->isStatic()) {
+                break;
+            }
+
+            return $adderRef;
+        }
+
+        return null;
     }
 
     /**
-     * Creates a setter name for the given property name
+     * Looks for a setter for the given property name
      *
      * @param string $propertyName
+     * @param ReflectionClass $classRef
      *
-     * @return string
+     * @return null|ReflectionMethod
      */
-    private function createSetterNameForPropertyName(string $propertyName) : string
+    private function findSetterForPropertyName(string $propertyName, ReflectionClass $classRef) : ?ReflectionMethod
     {
-        $propertyName = $this->convertPropertyNameFromSnakeCaseToCamelCase($propertyName);
+        $propertyName = $this->camelizePropertyName($propertyName);
 
-        return 'set' . $propertyName;
+        $setterName = 'set' . $propertyName;
+        if (!$classRef->hasMethod($setterName)) {
+            return null;
+        }
+
+        $setterRef = $classRef->getMethod($setterName);
+        if (!$setterRef->isPublic() || $setterRef->isStatic()) {
+            return null;
+        }
+
+        return $setterRef;
     }
 
     /**
-     * Converts the given property name from a snake case to a camel case
+     * Converts the given property name from Snake case to Camel case
      *
      * @param string $propertyName
      *
      * @return string
      */
-    private function convertPropertyNameFromSnakeCaseToCamelCase(string $propertyName) : string
+    private function camelizePropertyName(string $propertyName) : string
     {
         if (false === strpos($propertyName, '_')) {
             return ucfirst($propertyName);

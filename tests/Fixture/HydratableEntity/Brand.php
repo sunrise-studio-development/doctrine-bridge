@@ -41,11 +41,22 @@ class Brand
     private $aliases;
 
     /**
+     * @ORM\OneToMany(
+     *   targetEntity="Arus\Doctrine\Bridge\Tests\Fixture\HydratableEntity\BrandLogotype",
+     *   mappedBy="brand",
+     * )
+     *
+     * @var Collection
+     */
+    private $logotypes;
+
+    /**
      * Constructor of the class
      */
     public function __construct()
     {
         $this->aliases = new ArrayCollection();
+        $this->logotypes = new ArrayCollection();
     }
 
     /**
@@ -62,6 +73,14 @@ class Brand
     public function getAliases() : Collection
     {
         return $this->aliases;
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getLogotypes() : Collection
+    {
+        return $this->logotypes;
     }
 
     /**
@@ -84,5 +103,17 @@ class Brand
         $this->aliases->add($alias);
 
         $alias->setName($alias->getName() . ':adder');
+    }
+
+    /**
+     * @param BrandLogotype $logotype
+     *
+     * @return void
+     */
+    public function addLogotype(BrandLogotype $logotype) : void
+    {
+        $this->logotypes->add($logotype);
+
+        $logotype->setName($logotype->getName() . ':adder');
     }
 }
