@@ -7,6 +7,7 @@ namespace Arus\Doctrine\Bridge\Tests;
  */
 use Arus\Doctrine\Bridge\RepositoryFactory;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager as Manager;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\ORMException;
@@ -214,5 +215,23 @@ class ManagerRegistryTest extends TestCase
         $this->expectExceptionMessage('Doctrine ORM Manager named "undefined" does not exist.');
 
         $doctrine->getHydrator('undefined');
+    }
+
+    /**
+     * @return void
+     */
+    public function testCustomTypes() : void
+    {
+        $container = $this->getContainer();
+
+        $doctrine = $container->get('doctrine');
+
+        $this->assertTrue(Type::hasType(
+            Fixture\Example1DbalType::NAME
+        ));
+
+        $this->assertTrue(Type::hasType(
+            Fixture\Example2DbalType::NAME
+        ));
     }
 }

@@ -47,6 +47,7 @@ class ManagerRegistry extends AbstractManagerRegistry
         $configuration = $container->get('doctrine.configuration');
         $connections = [];
         $managers = [];
+        $types = [];
 
         foreach ($configuration as $name => $params) {
             $connections[$name] = sprintf('doctrine.connection.%s', $name);
@@ -59,10 +60,15 @@ class ManagerRegistry extends AbstractManagerRegistry
             $container->set($managers[$name], factory(function ($params) {
                 return $this->createManager($params);
             })->parameter('params', $params));
+
+            if (!empty($params['types'])) {
+                $types += $params['types'];
+            }
         }
 
         parent::__construct('ORM', $connections, $managers, key($connections), key($managers), Proxy::class);
 
+        $this->registerUserTypes($types);
         $this->registerUuidType();
 
         $this->container = $container;
@@ -192,6 +198,20 @@ class ManagerRegistry extends AbstractManagerRegistry
         $config->setSQLLogger($params['sql_logger'] ?? null);
 
         return EntityManager::create($params['connection'], $config);
+    }
+
+    /**
+     * @param array $types
+     *
+     * @return void
+     */
+    private function registerUserTypes(array $types) : void
+    {
+        foreach ($types as $name => $class) {
+            Type::hasType($name) ?
+            Type::overrideType($name, $class) :
+            Type::addType($name, $class);
+        }
     }
 
     /**
