@@ -47,6 +47,9 @@ trait ContainerAwareTrait
                     __DIR__ . '/Entity',
                 ],
                 'proxy_auto_generate' => false,
+                'types' => [
+                    Example1DbalType::NAME => Example1DbalType::class,
+                ],
             ],
             'bar' => [
                 'connection' => [
@@ -56,6 +59,9 @@ trait ContainerAwareTrait
                     __DIR__ . '/Entity',
                 ],
                 'proxy_auto_generate' => false,
+                'types' => [
+                    Example2DbalType::NAME => Example2DbalType::class,
+                ],
             ],
         ]);
 
