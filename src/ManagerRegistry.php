@@ -44,7 +44,9 @@ class ManagerRegistry extends AbstractManagerRegistry
      */
     public function __construct(Container $container)
     {
-        $configuration = $container->get('doctrine.configuration');
+        $this->container = $container;
+
+        $configuration = $this->container->get('doctrine.configuration');
         $connections = [];
         $managers = [];
         $types = [];
@@ -53,11 +55,11 @@ class ManagerRegistry extends AbstractManagerRegistry
             $connections[$name] = sprintf('doctrine.connection.%s', $name);
             $managers[$name] = sprintf('doctrine.manager.%s', $name);
 
-            $container->set($connections[$name], factory(function ($name) {
+            $this->container->set($connections[$name], factory(function ($name) {
                 return $this->getManager($name)->getConnection();
             })->parameter('name', $name));
 
-            $container->set($managers[$name], factory(function ($params) {
+            $this->container->set($managers[$name], factory(function ($params) {
                 return $this->createManager($params);
             })->parameter('params', $params));
 
@@ -70,8 +72,6 @@ class ManagerRegistry extends AbstractManagerRegistry
 
         $this->registerUserTypes($types);
         $this->registerUuidType();
-
-        $this->container = $container;
     }
 
     /**
@@ -208,9 +208,13 @@ class ManagerRegistry extends AbstractManagerRegistry
     private function registerUserTypes(array $types) : void
     {
         foreach ($types as $name => $class) {
-            Type::hasType($name) ?
-            Type::overrideType($name, $class) :
-            Type::addType($name, $class);
+            $type = $this->container->has($class) ?
+                $this->container->get($class) :
+                new $class();
+
+            Type::getTypeRegistry()->has($name) ?
+            Type::getTypeRegistry()->override($name, $type) :
+            Type::getTypeRegistry()->register($name, $type);
         }
     }
 
