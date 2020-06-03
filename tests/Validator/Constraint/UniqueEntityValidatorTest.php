@@ -65,16 +65,16 @@ class UniqueEntityValidatorTest extends TestCase
     public function invalidFieldsProvider() : array
     {
         return [
-            [null, 'NULL'],
-            [true, 'boolean'],
-            [false, 'boolean'],
-            [0, 'integer'],
-            [0.0, 'double'],
+            [null, 'null'],
+            [true, 'bool'],
+            [false, 'bool'],
+            [0, 'int'],
+            [0.0, 'float'],
             ['', 'string'],
             [new \stdClass, 'stdClass'],
             [function () {
             }, 'Closure'],
-            [\STDOUT, 'resource'],
+            [\STDOUT, 'resource (stream)'],
         ];
     }
 
@@ -106,16 +106,16 @@ class UniqueEntityValidatorTest extends TestCase
     public function invalidMessageProvider() : array
     {
         return [
-            [null, 'NULL'],
-            [true, 'boolean'],
-            [false, 'boolean'],
-            [0, 'integer'],
-            [0.0, 'double'],
+            [null, 'null'],
+            [true, 'bool'],
+            [false, 'bool'],
+            [0, 'int'],
+            [0.0, 'float'],
             [[], 'array'],
             [new \stdClass, 'stdClass'],
             [function () {
             }, 'Closure'],
-            [\STDOUT, 'resource'],
+            [\STDOUT, 'resource (stream)'],
         ];
     }
 
@@ -147,15 +147,15 @@ class UniqueEntityValidatorTest extends TestCase
     public function invalidAtPathProvider() : array
     {
         return [
-            [true, 'boolean'],
-            [false, 'boolean'],
-            [0, 'integer'],
-            [0.0, 'double'],
+            [true, 'bool'],
+            [false, 'bool'],
+            [0, 'int'],
+            [0.0, 'float'],
             [[], 'array'],
             [new \stdClass, 'stdClass'],
             [function () {
             }, 'Closure'],
-            [\STDOUT, 'resource'],
+            [\STDOUT, 'resource (stream)'],
         ];
     }
 

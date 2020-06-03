@@ -6,7 +6,7 @@ namespace Arus\Doctrine\Bridge;
  * Import classes
  */
 use pmill\Doctrine\Hydrator\ArrayHydrator as BaseArrayHydrator;
-use Symfony\Component\Inflector\Inflector;
+use Symfony\Component\String\Inflector\EnglishInflector;
 use ReflectionClass;
 use ReflectionMethod;
 
@@ -85,7 +85,7 @@ class ArrayHydrator extends BaseArrayHydrator
 
         // Sometimes it's not possible to determine a unique singular/plural form for the given word.
         // In those cases, the methods return an array with all the possible forms.
-        $singularPropertyNames = (array) Inflector::singularize($propertyName);
+        $singularPropertyNames = (array) (new EnglishInflector)->singularize($propertyName);
 
         foreach ($singularPropertyNames as $singularPropertyName) {
             $adderName = 'add' . $singularPropertyName;
