@@ -20,7 +20,7 @@
         "ramsey/uuid": "^3.9",
         "ramsey/uuid-doctrine": "^1.6",
         "pmill/doctrine-array-hydrator": "0.1.7",
-        "symfony/inflector": "^5.0"
+        "symfony/string": "^5.0"
     },
     "require-dev": {
         "arus/php-coding-standard": "^1.0",
