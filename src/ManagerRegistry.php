@@ -21,8 +21,8 @@ use Ramsey\Uuid\Doctrine\UuidBinaryOrderedTimeType;
 /**
  * Import functions
  */
-use function DI\factory;
 use function key;
+use function reset;
 use function sprintf;
 use function sys_get_temp_dir;
 
@@ -38,6 +38,16 @@ class ManagerRegistry extends AbstractManagerRegistry
     private $container;
 
     /**
+     * @var \Closure[]
+     */
+    private $factories = [];
+
+    /**
+     * @var object[]
+     */
+    private $services = [];
+
+    /**
      * Constructor of the class
      *
      * @param Container $container
@@ -51,22 +61,28 @@ class ManagerRegistry extends AbstractManagerRegistry
         $managers = [];
         $types = [];
 
-        foreach ($configuration as $name => $params) {
-            $connections[$name] = sprintf('doctrine.connection.%s', $name);
-            $managers[$name] = sprintf('doctrine.manager.%s', $name);
+        foreach ($configuration as $serviceName => $params) {
+            $connectionName = sprintf('connection:%s', $serviceName);
+            $managerName = sprintf('manager:%s', $serviceName);
 
-            $this->container->set($connections[$name], factory(function ($name) {
-                return $this->getManager($name)->getConnection();
-            })->parameter('name', $name));
+            $connections[$serviceName] = $connectionName;
+            $managers[$serviceName] = $managerName;
 
-            $this->container->set($managers[$name], factory(function ($params) {
+            $this->factories[$connectionName] = function () use ($serviceName) {
+                return $this->getManager($serviceName)->getConnection();
+            };
+
+            $this->factories[$managerName] = function () use ($params) {
                 return $this->createManager($params);
-            })->parameter('params', $params));
+            };
 
             if (!empty($params['types'])) {
                 $types += $params['types'];
             }
         }
+
+        reset($connections);
+        reset($managers);
 
         parent::__construct('ORM', $connections, $managers, key($connections), key($managers), Proxy::class);
 
@@ -161,10 +177,24 @@ class ManagerRegistry extends AbstractManagerRegistry
 
     /**
      * {@inheritDoc}
+     *
+     * @throws \RuntimeException If the registry doesn't contain the named service.
      */
     protected function getService($name)
     {
-        return $this->container->get($name);
+        if (isset($this->services[$name])) {
+            return $this->services[$name];
+        }
+
+        if (!isset($this->factories[$name])) {
+            throw new \RuntimeException(
+                sprintf('Doctrine Manager registry does not contain named service "%s"', $name)
+            );
+        }
+
+        $this->services[$name] = $this->factories[$name]();
+
+        return $this->services[$name];
     }
 
     /**
@@ -172,7 +202,7 @@ class ManagerRegistry extends AbstractManagerRegistry
      */
     protected function resetService($name)
     {
-        $this->container->set($name, $this->container->make($name));
+        unset($this->services[$name]);
     }
 
     /**
