@@ -69,18 +69,6 @@ class ManagerRegistryTest extends TestCase
 
         $doctrine = $container->get('doctrine');
 
-        $this->assertTrue($container->has('doctrine.connection.foo'));
-        $this->assertTrue($container->has('doctrine.connection.bar'));
-
-        $this->assertTrue($container->has('doctrine.manager.foo'));
-        $this->assertTrue($container->has('doctrine.manager.bar'));
-
-        $this->assertSame($container->get('doctrine.connection.foo'), $doctrine->getConnection('foo'));
-        $this->assertSame($container->get('doctrine.connection.bar'), $doctrine->getConnection('bar'));
-
-        $this->assertSame($container->get('doctrine.manager.foo'), $doctrine->getManager('foo'));
-        $this->assertSame($container->get('doctrine.manager.bar'), $doctrine->getManager('bar'));
-
         $this->assertInstanceOf(Connection::class, $doctrine->getConnection('foo'));
         $this->assertInstanceOf(Connection::class, $doctrine->getConnection('bar'));
 
