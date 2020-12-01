@@ -6,6 +6,7 @@ namespace Arus\Doctrine\Bridge;
  * Import classes
  */
 use DI\Container;
+use Doctrine\DBAL\Tools\Console\ConnectionProvider\SingleConnectionProvider;
 use Doctrine\DBAL\Tools\Console\Helper\ConnectionHelper;
 use Doctrine\DBAL\Tools\Console\Command as DBALCommand;
 use Doctrine\ORM\Tools\Console\Helper\EntityManagerHelper;
@@ -20,6 +21,7 @@ use Symfony\Component\Console\Input\InputOption;
  * Import functions
  */
 use function array_merge;
+use function class_exists;
 use function get_class;
 
 /**
@@ -85,10 +87,18 @@ class CommandsProvider
      */
     public function getDBALCommands() : array
     {
+        $connectionProvider = null;
+        if (class_exists(SingleConnectionProvider::class)) {
+            $input = new ArgvInput();
+            $service = $input->getParameterOption(['--service'], null);
+            $connection = $this->container->get('doctrine')->getConnection($service);
+            $connectionProvider = new SingleConnectionProvider($connection);
+        }
+
         return [
             $this->configureDBALCommand(new DBALCommand\ImportCommand()),
-            $this->configureDBALCommand(new DBALCommand\ReservedWordsCommand()),
-            $this->configureDBALCommand(new DBALCommand\RunSqlCommand()),
+            $this->configureDBALCommand(new DBALCommand\ReservedWordsCommand($connectionProvider)),
+            $this->configureDBALCommand(new DBALCommand\RunSqlCommand($connectionProvider)),
         ];
     }
 
