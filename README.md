@@ -1,11 +1,13 @@
-## Arus // Doctrine Bridge for PHP 7.2+ based on PHP-DI
+## Doctrine Bridge for PHP 7.2+ (incl. PHP 8) based on PHP-DI
 
-[![Build Status](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/build.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/build-status/master)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/?branch=master)
+[![Build Status](https://circleci.com/gh/autorusltd/doctrine-bridge.svg?style=shield)](https://circleci.com/gh/autorusltd/doctrine-bridge)
 [![Code Coverage](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/?branch=master)
-[![Latest Stable Version](https://poser.pugx.org/arus/doctrine-bridge/v/stable)](https://packagist.org/packages/arus/doctrine-bridge)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/?branch=master)
 [![Total Downloads](https://poser.pugx.org/arus/doctrine-bridge/downloads)](https://packagist.org/packages/arus/doctrine-bridge)
+[![Latest Stable Version](https://poser.pugx.org/arus/doctrine-bridge/v/stable)](https://packagist.org/packages/arus/doctrine-bridge)
 [![License](https://poser.pugx.org/arus/doctrine-bridge/license)](https://packagist.org/packages/arus/doctrine-bridge)
+
+---
 
 ## Installation
 
@@ -190,8 +192,6 @@ class Entry
 
 ### Doctrine Array Hydrator
 
-https://github.com/pmill/doctrine-array-hydrator
-
 ```php
 $hydrator = $container->get('doctrine')->getHydrator();
 
@@ -199,3 +199,5 @@ $hydrator->hydrate(Entity::class, [
     'name' => 'foo bar',
 ]);
 ```
+
+* https://github.com/pmill/doctrine-array-hydrator
