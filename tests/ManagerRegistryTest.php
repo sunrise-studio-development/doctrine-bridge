@@ -221,5 +221,9 @@ class ManagerRegistryTest extends TestCase
         $this->assertTrue(Type::hasType(
             Fixture\Example2DbalType::NAME
         ));
+
+        $this->assertTrue(Type::hasType(
+            Fixture\Example3DbalType::NAME
+        ));
     }
 }
