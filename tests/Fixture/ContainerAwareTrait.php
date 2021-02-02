@@ -38,6 +38,10 @@ trait ContainerAwareTrait
 
         $container->set('doctrine', autowire(ManagerRegistry::class));
 
+        $container->set('doctrine.types', [
+            Example3DbalType::NAME => Example3DbalType::class,
+        ]);
+
         $container->set('doctrine.configuration', [
             'foo' => [
                 'connection' => [

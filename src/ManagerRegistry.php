@@ -76,9 +76,15 @@ class ManagerRegistry extends AbstractManagerRegistry
                 return $this->createManager($params);
             };
 
+            // deprecated...
             if (!empty($params['types'])) {
                 $types += $params['types'];
             }
+        }
+
+        /** @since 1.17.0 */
+        if ($this->container->has('doctrine.types')) {
+            $types += $this->container->get('doctrine.types');
         }
 
         reset($connections);
