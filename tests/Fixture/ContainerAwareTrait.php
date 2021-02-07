@@ -6,8 +6,10 @@ namespace Arus\Doctrine\Bridge\Tests\Fixture;
  * Import classes
  */
 use Arus\Doctrine\Bridge\ManagerRegistry;
+use Arus\Doctrine\Bridge\SQLLogger;
 use DI\Container;
 use DI\ContainerBuilder;
+use Monolog\Logger;
 use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
 use Symfony\Component\Validator\Validation;
 
@@ -15,6 +17,8 @@ use Symfony\Component\Validator\Validation;
  * Import functions
  */
 use function DI\autowire;
+use function DI\create;
+use function DI\get;
 use function DI\factory;
 
 /**
@@ -54,6 +58,7 @@ trait ContainerAwareTrait
                 'types' => [
                     Example1DbalType::NAME => Example1DbalType::class,
                 ],
+                'sql_logger' => new SQLLogger(new Logger('test')),
             ],
             'bar' => [
                 'connection' => [

@@ -12,7 +12,7 @@
 ## Installation
 
 ```bash
-composer require 'arus/doctrine-bridge:^1.10'
+composer require 'arus/doctrine-bridge:^1.18'
 ```
 
 ## Examples of using
@@ -177,11 +177,11 @@ use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
 
 /**
  * @UniqueEntity({"foo"})
- * 
+ *
  * @UniqueEntity({"bar", "baz"})
- * 
+ *
  * @UniqueEntity({"qux"}, atPath="customPropertyPath")
- * 
+ *
  * @UniqueEntity({"quux"}, message="The value {{ value }} already exists!")
  */
 class Entry
