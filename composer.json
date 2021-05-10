@@ -25,7 +25,7 @@
         "symfony/string": "^5.0"
     },
     "require-dev": {
-        "sunrise/php-coding-standard": "^1.0",
+        "sunrise/coding-standard": "1.0.0",
         "phpunit/phpunit": "7.5.20|9.5.0",
         "php-di/php-di": "^6.0",
         "doctrine/orm": "^2.7",
