@@ -28,6 +28,34 @@ class ArrayHydrator extends BaseArrayHydrator
     /**
      * {@inheritDoc}
      */
+    protected function hydrateToOneAssociation($entity, $propertyName, $mapping, $value)
+    {
+        $entityRef = new ReflectionClass($entity);
+
+        $setterRef = $this->findSetterForPropertyName($propertyName, $entityRef);
+        if (null === $setterRef) {
+            return $entity;
+        }
+
+        if (null === $value) {
+            $setterRef->invoke($entity, null);
+            return $entity;
+        }
+
+        $targetEntity = is_array($value) ?
+        $this->hydrate($mapping['targetEntity'], $value) :
+        $this->fetchAssociationEntity($mapping['targetEntity'], $value);
+
+        if ($targetEntity instanceof $mapping['targetEntity']) {
+            $setterRef->invoke($entity, $targetEntity);
+        }
+
+        return $entity;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     protected function hydrateToManyAssociation($entity, $propertyName, $mapping, $value)
     {
         $entityRef = new ReflectionClass($entity);
