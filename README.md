@@ -200,4 +200,6 @@ $hydrator->hydrate(Entity::class, [
 ]);
 ```
 
+Based on:
+
 * https://github.com/pmill/doctrine-array-hydrator
