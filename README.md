@@ -1,18 +1,18 @@
 ## Doctrine Bridge for PHP 7.2+ (incl. PHP 8) based on PHP-DI
 
-[![Build Status](https://circleci.com/gh/autorusltd/doctrine-bridge.svg?style=shield)](https://circleci.com/gh/autorusltd/doctrine-bridge)
-[![Code Coverage](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/?branch=master)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/autorusltd/doctrine-bridge/?branch=master)
-[![Total Downloads](https://poser.pugx.org/arus/doctrine-bridge/downloads)](https://packagist.org/packages/arus/doctrine-bridge)
-[![Latest Stable Version](https://poser.pugx.org/arus/doctrine-bridge/v/stable)](https://packagist.org/packages/arus/doctrine-bridge)
-[![License](https://poser.pugx.org/arus/doctrine-bridge/license)](https://packagist.org/packages/arus/doctrine-bridge)
+[![Build Status](https://circleci.com/gh/sunrise-php/doctrine-bridge.svg?style=shield)](https://circleci.com/gh/sunrise-php/doctrine-bridge)
+[![Code Coverage](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/?branch=master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/?branch=master)
+[![Total Downloads](https://poser.pugx.org/sunrise/doctrine-bridge/downloads)](https://packagist.org/packages/sunrise/doctrine-bridge)
+[![Latest Stable Version](https://poser.pugx.org/sunrise/doctrine-bridge/v/stable)](https://packagist.org/packages/sunrise/doctrine-bridge)
+[![License](https://poser.pugx.org/sunrise/doctrine-bridge/license)](https://packagist.org/packages/sunrise/doctrine-bridge)
 
 ---
 
 ## Installation
 
 ```bash
-composer require 'arus/doctrine-bridge:^1.18'
+composer require 'sunrise/doctrine-bridge:^1.19'
 ```
 
 ## Examples of using
@@ -199,5 +199,7 @@ $hydrator->hydrate(Entity::class, [
     'name' => 'foo bar',
 ]);
 ```
+
+Based on:
 
 * https://github.com/pmill/doctrine-array-hydrator

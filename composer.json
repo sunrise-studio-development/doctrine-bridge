@@ -1,7 +1,7 @@
 {
-    "name": "arus/doctrine-bridge",
-    "homepage": "https://github.com/autorusltd/doctrine-bridge",
-    "description": "Arus // Doctrine Bridge for PHP 7.2+ (incl. PHP 8) based on PHP-DI",
+    "name": "sunrise/doctrine-bridge",
+    "homepage": "https://github.com/sunrise-php/doctrine-bridge",
+    "description": "Sunrise // Doctrine Bridge for PHP 7.2+ (incl. PHP 8) based on PHP-DI",
     "license": "MIT",
     "keywords": [
         "arus",
@@ -25,8 +25,8 @@
         "symfony/string": "^5.0"
     },
     "require-dev": {
+        "sunrise/coding-standard": "1.0.0",
         "phpunit/phpunit": "7.5.20|9.5.0",
-        "arus/php-coding-standard": "^1.0",
         "php-di/php-di": "^6.0",
         "doctrine/orm": "^2.7",
         "doctrine/migrations": "^2.2",
