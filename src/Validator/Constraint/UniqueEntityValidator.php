@@ -1,12 +1,20 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Validator\Constraint;
+/**
+ * It's free open-source software released under the MIT License.
+ *
+ * @author Anatoly Fenric <anatoly@fenric.ru>
+ * @copyright Copyright (c) 2020, Anatoly Fenric
+ * @license https://github.com/sunrise-php/doctrine-bridge/blob/master/LICENSE
+ * @link https://github.com/sunrise-php/doctrine-bridge
+ */
+
+namespace Sunrise\Bridge\Doctrine\Validator\Constraint;
 
 /**
  * Import classes
  */
-use DI\Container;
-use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\Persistence\ManagerRegistry as EntityManagerRegistryInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
@@ -17,8 +25,6 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
  */
 use function get_class;
 use function is_array;
-use function is_null;
-use function is_object;
 use function is_string;
 use function reset;
 use function sprintf;
@@ -30,46 +36,60 @@ class UniqueEntityValidator extends ConstraintValidator
 {
 
     /**
-     * The application container
-     *
-     * @var Container
+     * @var EntityManagerRegistryInterface
      */
-    private $container;
+    private $entityManagerRegistry;
 
     /**
-     * Constructor of the class
-     *
-     * @param Container $container
+     * @param EntityManagerRegistryInterface $entityManagerRegistry
      */
-    public function __construct(Container $container)
+    public function __construct(EntityManagerRegistryInterface $entityManagerRegistry)
     {
-        $this->container = $container;
+        $this->entityManagerRegistry = $entityManagerRegistry;
     }
 
     /**
-     * {@inheritDoc}
+     * Validates the given entity
+     *
+     * @param object $entity
+     * @param Constraint $constraint
+     *
+     * @throws ConstraintDefinitionException
+     * @throws UnexpectedTypeException
      */
-    public function validate($entity, Constraint $constraint)
+    public function validate(object $entity, Constraint $constraint)
     {
-        if (!is_object($entity)) {
-            return;
+        $this->validateConstraint($constraint);
+
+        $entityName = get_class($entity);
+
+        $entityManager = isset($constraint->em) ?
+            $this->entityManagerRegistry->getManager($constraint->em) :
+            $this->entityManagerRegistry->getManagerForClass($entityName);
+
+        // The "getManagerForClass" method may return null,
+        // but the "getManager" method should throw an exception...
+        if (null === $entityManager) {
+            throw new ConstraintDefinitionException(sprintf(
+                'Unable to get Entity Manager for %s.',
+                $entityName
+            ));
         }
 
-        $this->assertValidConstraintProperties($constraint);
-
-        $doctrine = $this->container->get('doctrine');
-        $entityName = get_class($entity);
-        $entityManager = $doctrine->getManagerForClass($entityName);
         $entityMetadata = $entityManager->getClassMetadata($entityName);
-        $repository = $entityManager->getRepository($entityName);
+
         $criteria = [];
 
-        $this->assertValidConstraintPropertyValues($constraint, $entityMetadata);
-
         foreach ($constraint->fields as $fieldName) {
-            $fieldValue = $entityMetadata->getFieldValue($entity, $fieldName);
+            if (!$entityMetadata->hasField($fieldName) &&
+                !$entityMetadata->hasAssociation($fieldName)) {
+                throw new ConstraintDefinitionException(sprintf(
+                    'The "%s" field is not mapped by Doctrine.',
+                    $fieldName
+                ));
+            }
 
-            // the validation process stops if the value of one of the fields is NULL
+            $fieldValue = $entityMetadata->getFieldValue($entity, $fieldName);
             if (null === $fieldValue) {
                 return;
             }
@@ -81,16 +101,20 @@ class UniqueEntityValidator extends ConstraintValidator
             $criteria[$fieldName] = $fieldValue;
         }
 
-        $result = $repository->findBy($criteria);
+        /** @var iterable<object> */
+        $result = $entityManager->getRepository($entityName)->findBy($criteria, null, 2);
 
-        if (empty($result)) {
+        $foundEntities = [];
+        foreach ($result as $foundEntity) {
+            $foundEntities[] = $foundEntity;
+        }
+
+        if (empty($foundEntities)) {
             return;
         }
 
-        foreach ($result as $found) {
-            if ($entity === $found) {
-                return;
-            }
+        if (1 === count($foundEntities) && $entity === $foundEntities[0]) {
+            return;
         }
 
         $atPath = $constraint->atPath ?? reset($constraint->fields);
@@ -106,18 +130,23 @@ class UniqueEntityValidator extends ConstraintValidator
     }
 
     /**
-     * Checks the validity of the given constraint properties
+     * Validates the given constraint
      *
      * @param Constraint $constraint
      *
      * @return void
      *
+     * @throws ConstraintDefinitionException
      * @throws UnexpectedTypeException
      */
-    private function assertValidConstraintProperties(Constraint $constraint) : void
+    private function validateConstraint(Constraint $constraint) : void
     {
-        if (!$constraint instanceof UniqueEntity) {
+        if (!($constraint instanceof UniqueEntity)) {
             throw new UnexpectedTypeException($constraint, UniqueEntity::class);
+        }
+
+        if (null !== $constraint->em && !is_string($constraint->em)) {
+            throw new UnexpectedTypeException($constraint->em, 'string');
         }
 
         if (!is_array($constraint->fields)) {
@@ -128,41 +157,12 @@ class UniqueEntityValidator extends ConstraintValidator
             throw new UnexpectedTypeException($constraint->message, 'string');
         }
 
-        if (!is_string($constraint->atPath) && !is_null($constraint->atPath)) {
-            throw new UnexpectedTypeException($constraint->atPath, 'string or null');
-        }
-    }
-
-    /**
-     * Checks the validity of the given constraint property values
-     *
-     * @param Constraint $constraint
-     * @param ClassMetadata $entityMetadata
-     *
-     * @return void
-     *
-     * @throws ConstraintDefinitionException
-     */
-    private function assertValidConstraintPropertyValues(Constraint $constraint, ClassMetadata $entityMetadata) : void
-    {
-        if ([] === $constraint->fields) {
-            throw new ConstraintDefinitionException(
-                'The fields list is empty.'
-            );
+        if (null !== $constraint->atPath && !is_string($constraint->atPath)) {
+            throw new UnexpectedTypeException($constraint->atPath, 'string');
         }
 
-        foreach ($constraint->fields as $fieldName) {
-            if (!is_string($fieldName)) {
-                throw new ConstraintDefinitionException(
-                    'The fields list contains an invalid structure.'
-                );
-            }
-
-            if (!$entityMetadata->hasField($fieldName) && !$entityMetadata->hasAssociation($fieldName)) {
-                throw new ConstraintDefinitionException(
-                    sprintf('The field "%s" is not mapped by Doctrine.', $fieldName)
-                );
-            }
+        if (empty($constraint->fields)) {
+            throw new ConstraintDefinitionException('No fields specified.');
         }
     }
 }
