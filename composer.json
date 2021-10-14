@@ -1,14 +1,17 @@
 {
     "name": "sunrise/doctrine-bridge",
     "homepage": "https://github.com/sunrise-php/doctrine-bridge",
-    "description": "Sunrise // Doctrine Bridge for PHP 7.2+ (incl. PHP 8) based on PHP-DI",
+    "description": "Sunrise // Bridge to Doctrine for PHP 7.2+",
     "license": "MIT",
     "keywords": [
         "arus",
         "fenric",
+        "sunrise",
         "doctrine",
         "php7",
-        "php8"
+        "php8",
+        "bridge",
+        "doctrine"
     ],
     "authors": [
         {
@@ -19,34 +22,34 @@
     ],
     "require": {
         "php": "^7.2|^8.0",
-        "ramsey/uuid": "^3.9",
-        "ramsey/uuid-doctrine": "^1.6",
-        "pmill/doctrine-array-hydrator": "0.1.7",
         "symfony/string": "^5.0"
     },
     "require-dev": {
         "sunrise/coding-standard": "1.0.0",
-        "phpunit/phpunit": "7.5.20|9.5.0",
-        "php-di/php-di": "^6.0",
-        "doctrine/orm": "^2.7",
-        "doctrine/migrations": "^2.2",
-        "symfony/validator": "^5.0",
-        "monolog/monolog": "^2.0"
+        "phpunit/phpunit": "^9.5",
+        "doctrine/dbal": "~2.13.0",
+        "doctrine/orm": "~2.10.0",
+        "doctrine/migrations": "~3.2.0",
+        "symfony/validator": "^5.0"
     },
     "autoload": {
         "psr-4": {
-            "Arus\\Doctrine\\Bridge\\": "src/"
+            "Sunrise\\Bridge\\Doctrine\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Arus\\Doctrine\\Bridge\\Tests\\": "tests/"
+            "Sunrise\\Bridge\\Doctrine\\Tests\\Fixtures\\": "tests/fixtures/"
         }
     },
     "scripts": {
         "test": [
-            "phpunit --colors=always --coverage-text",
-            "phpcs"
+            "phpcs",
+            "XDEBUG_MODE=coverage phpunit --coverage-text"
+        ],
+        "build": [
+            "phpdoc -d src/ -t phpdoc/",
+            "XDEBUG_MODE=coverage phpunit --coverage-html coverage/"
         ]
     }
 }
