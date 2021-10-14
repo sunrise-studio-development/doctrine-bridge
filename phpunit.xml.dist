@@ -6,7 +6,7 @@
         </include>
     </coverage>
     <testsuites>
-        <testsuite name="Arus Doctrine Bridge Test Suite">
+        <testsuite name="sunrise.bridge.doctrine.testSuite">
             <directory>./tests/</directory>
         </testsuite>
     </testsuites>
