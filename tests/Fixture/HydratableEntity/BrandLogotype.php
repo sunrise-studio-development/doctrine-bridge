@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Fixture\HydratableEntity;
+namespace Sunrise\Bridge\Doctrine\Tests\Fixture\HydratableEntity;
 
 /**
  * Import classes
@@ -30,7 +30,7 @@ class BrandLogotype
 
     /**
      * @ORM\ManyToOne(
-     *   targetEntity="Arus\Doctrine\Bridge\Tests\Fixture\HydratableEntity\Brand",
+     *   targetEntity="Sunrise\Bridge\Doctrine\Tests\Fixture\HydratableEntity\Brand",
      *   inversedBy="logotypes",
      * )
      *

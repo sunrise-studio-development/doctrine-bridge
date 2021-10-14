@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Fixture\Repository;
+namespace Sunrise\Bridge\Doctrine\Tests\Fixture\Repository;
 
 /**
  * Import classes
@@ -12,18 +12,4 @@ use Doctrine\ORM\EntityRepository;
  */
 final class FooRepository extends EntityRepository
 {
-
-    /**
-     * @Inject("foo")
-     *
-     * @var string
-     */
-    public $foo;
-
-    /**
-     * @Inject("bar")
-     *
-     * @var string
-     */
-    public $bar;
 }

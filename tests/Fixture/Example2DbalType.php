@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Fixture;
+namespace Sunrise\Bridge\Doctrine\Tests\Fixture;
 
 /**
  * Import classes

@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests;
+namespace Sunrise\Bridge\Doctrine\Tests;
 
 /**
  * Import classes
  */
-use Arus\Doctrine\Bridge\RepositoryFactory;
+use Sunrise\Bridge\Doctrine\RepositoryFactory;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager as Manager;

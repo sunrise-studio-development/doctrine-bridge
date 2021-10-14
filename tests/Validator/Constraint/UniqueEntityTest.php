@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Validator\Constraint;
+namespace Sunrise\Bridge\Doctrine\Tests\Validator\Constraint;
 
 /**
  * Import classes
  */
-use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
+use Sunrise\Bridge\Doctrine\Validator\Constraint\UniqueEntity;
 use PHPUnit\Framework\TestCase;
 
 /**

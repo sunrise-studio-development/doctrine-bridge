@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Fixture\Entity;
+namespace Sunrise\Bridge\Doctrine\Tests\Fixture\Entity;
 
 /**
  * Import classes
  */
-use Arus\Doctrine\Bridge\Validator\Constraint as Assert;
+use Sunrise\Bridge\Doctrine\Validator\Constraint as Assert;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

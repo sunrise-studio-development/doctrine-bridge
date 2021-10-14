@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Fixture;
+namespace Sunrise\Bridge\Doctrine\Tests\Fixture;
 
 /**
  * Import classes
  */
-use Arus\Doctrine\Bridge\ManagerRegistry;
-use Arus\Doctrine\Bridge\SQLLogger;
+use Sunrise\Bridge\Doctrine\ManagerRegistry;
+use Sunrise\Bridge\Doctrine\SQLLogger;
 use DI\Container;
 use DI\ContainerBuilder;
 use Monolog\Logger;

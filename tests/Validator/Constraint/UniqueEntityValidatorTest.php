@@ -1,13 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Validator\Constraint;
+namespace Sunrise\Bridge\Doctrine\Tests\Validator\Constraint;
 
 /**
  * Import classes
  */
-use Arus\Doctrine\Bridge\Tests\Fixture;
-use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
-use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntityValidator;
+use Sunrise\Bridge\Doctrine\Tests\Fixture;
+use Sunrise\Bridge\Doctrine\Validator\Constraint\UniqueEntity;
+use Sunrise\Bridge\Doctrine\Validator\Constraint\UniqueEntityValidator;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Exception\ConstraintDefinitionException;

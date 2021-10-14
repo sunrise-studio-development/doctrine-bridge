@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Arus\Doctrine\Bridge\Tests\Fixture\HydratableEntity;
+namespace Sunrise\Bridge\Doctrine\Tests\Fixture\HydratableEntity;
 
 /**
  * Import classes
@@ -32,7 +32,7 @@ class Brand
 
     /**
      * @ORM\OneToMany(
-     *   targetEntity="Arus\Doctrine\Bridge\Tests\Fixture\HydratableEntity\BrandAlias",
+     *   targetEntity="Sunrise\Bridge\Doctrine\Tests\Fixture\HydratableEntity\BrandAlias",
      *   mappedBy="brand",
      * )
      *
@@ -42,7 +42,7 @@ class Brand
 
     /**
      * @ORM\OneToMany(
-     *   targetEntity="Arus\Doctrine\Bridge\Tests\Fixture\HydratableEntity\BrandLogotype",
+     *   targetEntity="Sunrise\Bridge\Doctrine\Tests\Fixture\HydratableEntity\BrandLogotype",
      *   mappedBy="brand",
      * )
      *
