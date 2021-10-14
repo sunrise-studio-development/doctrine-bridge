@@ -1,4 +1,4 @@
-## Doctrine Bridge for PHP 7.2+ (incl. PHP 8) based on PHP-DI
+# Doctrine Bridge for PHP 7.2+ (incl. PHP 8)
 
 [![Build Status](https://circleci.com/gh/sunrise-php/doctrine-bridge.svg?style=shield)](https://circleci.com/gh/sunrise-php/doctrine-bridge)
 [![Code Coverage](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/?branch=master)
@@ -12,7 +12,7 @@
 ## Installation
 
 ```bash
-composer require 'sunrise/doctrine-bridge:^1.19'
+composer require 'sunrise/doctrine-bridge:^2.0'
 ```
 
 ## Examples of using
@@ -26,7 +26,7 @@ The examples use [PHP-DI](http://php-di.org/)
 ```php
 declare(strict_types=1);
 
-use Arus\Doctrine\Bridge\ManagerRegistry;
+use Sunrise\Bridge\Doctrine\ManagerRegistry;
 use Doctrine\Common\Cache\ArrayCache;
 
 use function DI\autowire;
@@ -118,7 +118,7 @@ return [
 ```php
 declare(strict_types=1);
 
-use Arus\Doctrine\Bridge\CommandsProvider;
+use Sunrise\Bridge\Doctrine\CommandsProvider;
 
 use function DI\decorate;
 
@@ -173,7 +173,7 @@ namespace App\Entity;
 /**
  * Import classes
  */
-use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
+use Sunrise\Bridge\Doctrine\Validator\Constraint\UniqueEntity;
 
 /**
  * @UniqueEntity({"foo"})
