@@ -148,11 +148,14 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     protected function getService($name)
     {
         if (!isset($this->services[$name])) {
+            // this case is controlled by the parent...
             if (!isset($this->serviceFactories[$name])) {
+                // @codeCoverageIgnoreStart
                 throw new InvalidArgumentException(sprintf(
                     'No service found for the %s name.',
                     $name
                 ));
+                // @codeCoverageIgnoreEnd
             }
 
             $this->services[$name] = $this->serviceFactories[$name]($name);

@@ -14,21 +14,66 @@ namespace Sunrise\Bridge\Doctrine;
 /**
  * Import classes
  */
-use Doctrine\DBAL\Tools\Console\Command as DBALCommand;
-use Doctrine\Migrations\Configuration\EntityManager\ManagerRegistryEntityManager as MigrationsEntityManagerProvider;
-use Doctrine\Migrations\Configuration\Migration\ConfigurationArray as MigrationsConfiguration;
-use Doctrine\Migrations\DependencyFactory as MigrationsDependencyFactory;
-use Doctrine\Migrations\Tools\Console\Command as MigrationsCommand;
-use Doctrine\ORM\Tools\Console\Command as ORMCommand;
+use Doctrine\Migrations\Configuration\EntityManager\ManagerRegistryEntityManager;
+use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
+use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Persistence\ManagerRegistry as EntityManagerRegistryInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Console\Command\Command;
 
 /**
  * CommandProvider
  */
 final class CommandProvider
 {
+
+    /**
+     * @var class-string[]
+     */
+    private const DBAL_COMMANDS = [
+        \Doctrine\DBAL\Tools\Console\Command\ReservedWordsCommand::class,
+        \Doctrine\DBAL\Tools\Console\Command\RunSqlCommand::class,
+    ];
+
+    /**
+     * @var class-string[]
+     */
+    private const ORM_COMMANDS = [
+        \Doctrine\ORM\Tools\Console\Command\ClearCache\CollectionRegionCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\ClearCache\EntityRegionCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\ClearCache\MetadataCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\ClearCache\QueryCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\ClearCache\QueryRegionCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\ClearCache\ResultCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\ConvertMappingCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\EnsureProductionSettingsCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\GenerateProxiesCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\InfoCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\MappingDescribeCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\RunDqlCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\SchemaTool\CreateCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\SchemaTool\DropCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\SchemaTool\UpdateCommand::class,
+        \Doctrine\ORM\Tools\Console\Command\ValidateSchemaCommand::class,
+    ];
+
+    /**
+     * @var class-string[]
+     */
+    private const MIGRATIONS_COMMANDS = [
+        \Doctrine\Migrations\Tools\Console\Command\CurrentCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\DiffCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\DumpSchemaCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\ExecuteCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\GenerateCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\LatestCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\ListCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\MigrateCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\RollupCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\StatusCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\SyncMetadataCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\UpToDateCommand::class,
+        \Doctrine\Migrations\Tools\Console\Command\VersionCommand::class,
+    ];
 
     /**
      * @var EntityManagerRegistryInterface
@@ -46,45 +91,35 @@ final class CommandProvider
     /**
      * Gets all DBAL commands
      *
-     * @return Command[]
+     * @return \Symfony\Component\Console\Command\Command[]
      */
     public function getDBALCommands() : array
     {
         $connectionProvider = new ConnectionProvider($this->entityManagerRegistry);
 
-        return [
-            new DBALCommand\ReservedWordsCommand($connectionProvider),
-            new DBALCommand\RunSqlCommand($connectionProvider),
-        ];
+        $commands = [];
+        foreach (self::DBAL_COMMANDS as $className) {
+            $commands[] = new $className($connectionProvider);
+        }
+
+        return $commands;
     }
 
     /**
      * Gets all ORM commands
      *
-     * @return Command[]
+     * @return \Symfony\Component\Console\Command\Command[]
      */
     public function getORMCommands() : array
     {
         $entityManagerProvider = new EntityManagerProvider($this->entityManagerRegistry);
 
-        return [
-            new ORMCommand\ConvertMappingCommand($entityManagerProvider),
-            new ORMCommand\EnsureProductionSettingsCommand($entityManagerProvider),
-            new ORMCommand\GenerateProxiesCommand($entityManagerProvider),
-            new ORMCommand\InfoCommand($entityManagerProvider),
-            new ORMCommand\MappingDescribeCommand($entityManagerProvider),
-            new ORMCommand\RunDqlCommand($entityManagerProvider),
-            new ORMCommand\ValidateSchemaCommand($entityManagerProvider),
-            new ORMCommand\ClearCache\CollectionRegionCommand($entityManagerProvider),
-            new ORMCommand\ClearCache\EntityRegionCommand($entityManagerProvider),
-            new ORMCommand\ClearCache\MetadataCommand($entityManagerProvider),
-            new ORMCommand\ClearCache\QueryCommand($entityManagerProvider),
-            new ORMCommand\ClearCache\QueryRegionCommand($entityManagerProvider),
-            new ORMCommand\ClearCache\ResultCommand($entityManagerProvider),
-            new ORMCommand\SchemaTool\CreateCommand($entityManagerProvider),
-            new ORMCommand\SchemaTool\DropCommand($entityManagerProvider),
-            new ORMCommand\SchemaTool\UpdateCommand($entityManagerProvider),
-        ];
+        $commands = [];
+        foreach (self::ORM_COMMANDS as $className) {
+            $commands[] = new $className($entityManagerProvider);
+        }
+
+        return $commands;
     }
 
     /**
@@ -93,28 +128,20 @@ final class CommandProvider
      * @param array $parameters
      * @param LoggerInterface|null $logger
      *
-     * @return Command[]
+     * @return \Symfony\Component\Console\Command\Command[]
      */
     public function getMigrationCommands(array $parameters, ?LoggerInterface $logger = null) : array
     {
-        $config = new MigrationsConfiguration($parameters);
-        $managerProvider = MigrationsEntityManagerProvider::withSimpleDefault($this->entityManagerRegistry);
-        $dependencyFactory = MigrationsDependencyFactory::fromEntityManager($config, $managerProvider, $logger);
+        // TODO: maybe this code should be moved somewhere...
+        $configuration = new ConfigurationArray($parameters);
+        $entityManagerLoader = ManagerRegistryEntityManager::withSimpleDefault($this->entityManagerRegistry);
+        $dependencyFactory = DependencyFactory::fromEntityManager($configuration, $entityManagerLoader, $logger);
 
-        return [
-            new MigrationsCommand\CurrentCommand($dependencyFactory),
-            new MigrationsCommand\DiffCommand($dependencyFactory),
-            new MigrationsCommand\DumpSchemaCommand($dependencyFactory),
-            new MigrationsCommand\ExecuteCommand($dependencyFactory),
-            new MigrationsCommand\GenerateCommand($dependencyFactory),
-            new MigrationsCommand\LatestCommand($dependencyFactory),
-            new MigrationsCommand\ListCommand($dependencyFactory),
-            new MigrationsCommand\MigrateCommand($dependencyFactory),
-            new MigrationsCommand\RollupCommand($dependencyFactory),
-            new MigrationsCommand\StatusCommand($dependencyFactory),
-            new MigrationsCommand\SyncMetadataCommand($dependencyFactory),
-            new MigrationsCommand\UpToDateCommand($dependencyFactory),
-            new MigrationsCommand\VersionCommand($dependencyFactory),
-        ];
+        $commands = [];
+        foreach (self::MIGRATIONS_COMMANDS as $className) {
+            $commands[] = new $className($dependencyFactory);
+        }
+
+        return $commands;
     }
 }

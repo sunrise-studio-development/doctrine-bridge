@@ -42,8 +42,8 @@ final class EntityManagerMaintainer
      */
     public function closeAllConnections() : void
     {
-        foreach ($this->entityManagerRegistry->getManagers() as $manager) {
-            $manager->getConnection()->close();
+        foreach ($this->entityManagerRegistry->getConnections() as $connection) {
+            $connection->close();
         }
     }
 

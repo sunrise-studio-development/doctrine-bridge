@@ -18,12 +18,70 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 
 /**
  * EntityManagerFactory
  */
 final class EntityManagerFactory
 {
+
+    /**
+     * @var string
+     *
+     * @link https://www.doctrine-project.org/projects/doctrine-orm/en/2.9/reference/attributes-reference.html
+     */
+    public const METADATA_ATTRIBUTE_DRIVER_NAME = 'attributes';
+
+    /**
+     * @var string
+     *
+     * @link https://www.doctrine-project.org/projects/doctrine-orm/en/2.9/reference/annotations-reference.html
+     */
+    public const METADATA_ANNOTATION_DRIVER_NAME = 'annotations';
+
+    /**
+     * @var array<string, mixed>
+     */
+    private const DEFAULT_PARAMS = [
+        'metadata_driver' => self::METADATA_ANNOTATION_DRIVER_NAME,
+        'proxy_auto_generate' => true,
+        'proxy_namespace' => 'DoctrineProxies',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    private const CONFIG_SETTER_MAP = [
+        'auto_generate_proxy_classes' => 'setAutoGenerateProxyClasses',
+        'class_metadata_factory_name' => 'setClassMetadataFactoryName',
+        'custom_datetime_functions' => 'setCustomDatetimeFunctions',
+        'custom_hydration_modes' => 'setCustomHydrationModes',
+        'custom_numeric_functions' => 'setCustomNumericFunctions',
+        'custom_string_functions' => 'setCustomStringFunctions',
+        'default_query_hints' => 'setDefaultQueryHints',
+        'default_repository_class_name' => 'setDefaultRepositoryClassName',
+        'entity_listener_resolver' => 'setEntityListenerResolver',
+        'entity_namespaces' => 'setEntityNamespaces',
+        'metadata_driver' => 'setMetadataDriverImpl',
+        'naming_strategy' => 'setNamingStrategy',
+        'proxy_auto_generate' => 'setAutoGenerateProxyClasses', // alias to "auto_generate_proxy_classes"
+        'proxy_dir' => 'setProxyDir',
+        'proxy_namespace' => 'setProxyNamespace',
+        'quote_strategy' => 'setQuoteStrategy',
+        'repository_factory' => 'setRepositoryFactory',
+        'second_level_cache_configuration' => 'setSecondLevelCacheConfiguration',
+        'second_level_cache_enabled' => 'setSecondLevelCacheEnabled',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    private const CACHE_TYPE_MAP = [
+        'hydration_cache' => 'HydrationCache',
+        'metadata_cache' => 'MetadataCache',
+        'query_cache' => 'QueryCache',
+    ];
 
     /**
      * Creates a new entity manager instance from the parameters
@@ -35,96 +93,35 @@ final class EntityManagerFactory
      */
     public function createEntityManager(Connection $connection, array $parameters) : EntityManagerInterface
     {
+        $parameters += self::DEFAULT_PARAMS;
+
         $configuration = new Configuration();
 
-        if (isset($parameters['proxy_dir'])) {
-            $configuration->setProxyDir($parameters['proxy_dir']);
+        if (isset($parameters['entity_locations'], $parameters['metadata_driver'])) {
+            if (self::METADATA_ATTRIBUTE_DRIVER_NAME === $parameters['metadata_driver']) {
+                $parameters['metadata_driver'] = new AttributeDriver(
+                    (array) $parameters['entity_locations']
+                );
+            }
+
+            if (self::METADATA_ANNOTATION_DRIVER_NAME === $parameters['metadata_driver']) {
+                $parameters['metadata_driver'] = $configuration->newDefaultAnnotationDriver(
+                    $parameters['entity_locations'],
+                    false
+                );
+            }
         }
 
-        if (isset($parameters['proxy_auto_generate'])) {
-            $configuration->setAutoGenerateProxyClasses($parameters['proxy_auto_generate']);
-        } elseif (isset($parameters['auto_generate_proxy_classes'])) {
-            $configuration->setAutoGenerateProxyClasses($parameters['auto_generate_proxy_classes']);
+        foreach (self::CONFIG_SETTER_MAP as $parameter => $setter) {
+            if (isset($parameters[$parameter])) {
+                $configuration->{$setter}($parameters[$parameter]);
+            }
         }
 
-        if (isset($parameters['proxy_namespace'])) {
-            $configuration->setProxyNamespace($parameters['proxy_namespace']);
-        }
-
-        if (isset($parameters['metadata_sources'])) {
-            $configuration->setMetadataDriverImpl(
-                $configuration->newDefaultAnnotationDriver($parameters['metadata_sources'], false)
-            );
-        } elseif (isset($parameters['metadata_driver'])) {
-            $configuration->setMetadataDriverImpl($parameters['metadata_driver']);
-        }
-
-        if (isset($parameters['entity_namespaces'])) {
-            $configuration->setEntityNamespaces($parameters['entity_namespaces']);
-        }
-
-        if (isset($parameters['query_cache'])) {
-            Helper::setCacheToConfiguration($configuration, $parameters['query_cache'], 'QueryCache');
-        }
-
-        if (isset($parameters['hydration_cache'])) {
-            Helper::setCacheToConfiguration($configuration, $parameters['hydration_cache'], 'HydrationCache');
-        }
-
-        if (isset($parameters['metadata_cache'])) {
-            Helper::setCacheToConfiguration($configuration, $parameters['metadata_cache'], 'MetadataCache');
-        }
-
-        if (isset($parameters['custom_string_functions'])) {
-            $configuration->setCustomStringFunctions($parameters['custom_string_functions']);
-        }
-
-        if (isset($parameters['custom_numeric_functions'])) {
-            $configuration->setCustomNumericFunctions($parameters['custom_numeric_functions']);
-        }
-
-        if (isset($parameters['custom_datetime_functions'])) {
-            $configuration->setCustomDatetimeFunctions($parameters['custom_datetime_functions']);
-        }
-
-        if (isset($parameters['custom_hydration_modes'])) {
-            $configuration->setCustomHydrationModes($parameters['custom_hydration_modes']);
-        }
-
-        if (isset($parameters['class_metadata_factory_name'])) {
-            $configuration->setClassMetadataFactoryName($parameters['class_metadata_factory_name']);
-        }
-
-        if (isset($parameters['default_repository_class_name'])) {
-            $configuration->setDefaultRepositoryClassName($parameters['default_repository_class_name']);
-        }
-
-        if (isset($parameters['naming_strategy'])) {
-            $configuration->setNamingStrategy($parameters['naming_strategy']);
-        }
-
-        if (isset($parameters['quote_strategy'])) {
-            $configuration->setQuoteStrategy($parameters['quote_strategy']);
-        }
-
-        if (isset($parameters['entity_listener_resolver'])) {
-            $configuration->setEntityListenerResolver($parameters['entity_listener_resolver']);
-        }
-
-        if (isset($parameters['repository_factory'])) {
-            $configuration->setRepositoryFactory($parameters['repository_factory']);
-        }
-
-        if (isset($parameters['second_level_cache_enabled'])) {
-            $configuration->setSecondLevelCacheEnabled($parameters['second_level_cache_enabled']);
-        }
-
-        if (isset($parameters['second_level_cache_configuration'])) {
-            $configuration->setSecondLevelCacheConfiguration($parameters['second_level_cache_configuration']);
-        }
-
-        if (isset($parameters['default_query_hints'])) {
-            $configuration->setDefaultQueryHints($parameters['default_query_hints']);
+        foreach (self::CACHE_TYPE_MAP as $parameter => $type) {
+            if (isset($parameters[$parameter])) {
+                Helper::setCacheToConfiguration($configuration, $parameters[$parameter], $type);
+            }
         }
 
         return EntityManager::create(

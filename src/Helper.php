@@ -40,7 +40,7 @@ final class Helper
      *
      * @return bool
      */
-    public static function isIndexedArray($array) : bool
+    public static function isList($array) : bool
     {
         if (!is_array($array)) {
             return false;
@@ -54,6 +54,16 @@ final class Helper
         }
 
         return true;
+    }
+
+    /**
+     * @param array $array
+     *
+     * @return bool
+     */
+    public static function isDict($array) : bool
+    {
+        return is_array($array) && !self::isList($array);
     }
 
     /**

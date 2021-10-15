@@ -26,7 +26,14 @@ use ReflectionMethod;
 /**
  * Import functions
  */
-use function is_array;
+use function array_key_exists;
+use function class_exists;
+use function get_class;
+use function in_array;
+use function is_int;
+use function is_object;
+use function is_string;
+use function sprintf;
 use function str_replace;
 use function strpos;
 use function ucfirst;
@@ -172,7 +179,7 @@ final class EntityHydrator
             }
 
             if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_ONE, ClassMetadataInfo::MANY_TO_ONE])) {
-                $this->hydrateFieldWithOneAssociation(
+                $this->hydrateFieldWithToOneAssociation(
                     $metadata,
                     $entity,
                     $mapping['fieldName'],
@@ -184,7 +191,7 @@ final class EntityHydrator
             }
 
             if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_MANY, ClassMetadataInfo::MANY_TO_MANY])) {
-                $this->hydrateFieldWithManyAssociations(
+                $this->hydrateFieldWithToManyAssociation(
                     $metadata,
                     $entity,
                     $mapping['fieldName'],
@@ -206,7 +213,7 @@ final class EntityHydrator
      *
      * @return void
      */
-    private function hydrateFieldWithOneAssociation(
+    private function hydrateFieldWithToOneAssociation(
         ClassMetadataInfo $metadata,
         object $entity,
         string $fieldName,
@@ -226,7 +233,7 @@ final class EntityHydrator
             return;
         }
 
-        $this->passAssociationToField($entity, $setter, $targetEntity, $value);
+        $this->setAssociationToField($entity, $setter, $targetEntity, $value);
     }
 
     /**
@@ -238,7 +245,7 @@ final class EntityHydrator
      *
      * @return void
      */
-    private function hydrateFieldWithManyAssociations(
+    private function hydrateFieldWithToManyAssociation(
         ClassMetadataInfo $metadata,
         object $entity,
         string $fieldName,
@@ -255,48 +262,48 @@ final class EntityHydrator
             return;
         }
 
-        $isPassed = $this->passAssociationToField($entity, $adder, $targetEntity, $value);
-        if ($isPassed) {
+        $isSuccess = $this->setAssociationToField($entity, $adder, $targetEntity, $value);
+        if (true === $isSuccess) {
             return;
         }
 
-        if (Helper::isIndexedArray($value)) {
+        if (Helper::isList($value)) {
             foreach ($value as $item) {
-                $this->passAssociationToField($entity, $adder, $targetEntity, $item);
+                $this->setAssociationToField($entity, $adder, $targetEntity, $item);
             }
         }
     }
 
     /**
      * @param object $entity
-     * @param ReflectionMethod $passer
+     * @param ReflectionMethod $setter
      * @param string $targetEntity
      * @param mixed $value
      *
      * @return bool
      */
-    private function passAssociationToField(
+    private function setAssociationToField(
         object $entity,
-        ReflectionMethod $passer,
+        ReflectionMethod $setter,
         string $targetEntity,
         $value
     ) : bool {
-        // such the value can only be an identifier...
+        // such value can only be an identifier...
         if (is_int($value) || is_string($value)) {
             $object = $this->entityManager->getReference($targetEntity, $value);
             if (isset($object)) {
-                $passer->invoke($entity, $object);
+                $setter->invoke($entity, $object);
             }
 
-            // this isn't a confirmation of passing,
-            // it is an indication of a successful type identification...
+            // it is not a confirmation of setting,
+            // it is an indication of type acceptance...
             return true;
         }
 
-        if (is_array($value) && !Helper::isIndexedArray($value)) {
+        if (Helper::isDict($value)) {
             $object = $this->hydrate($targetEntity, $value);
 
-            $passer->invoke($entity, $object);
+            $setter->invoke($entity, $object);
 
             return true;
         }

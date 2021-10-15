@@ -25,6 +25,30 @@ final class ConnectionFactory
 {
 
     /**
+     * @var array<string, mixed>
+     */
+    private const DEFAULT_PARAMS = [
+        'auto_commit' => true,
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    private const CONFIG_SETTER_MAP = [
+        'auto_commit' => 'setAutoCommit',
+        'schema_assets_filter' => 'setSchemaAssetsFilter',
+        'middlewares' => 'setMiddlewares',
+        'sql_logger' => 'setSQLLogger',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    private const CACHE_TYPE_MAP = [
+        'result_cache' => 'ResultCache',
+    ];
+
+    /**
      * Creates a new connection instance from the given parameters
      *
      * @param array $parameters
@@ -33,26 +57,20 @@ final class ConnectionFactory
      */
     public function createConnection(array $parameters) : Connection
     {
+        $parameters += self::DEFAULT_PARAMS;
+
         $configuration = new Configuration();
 
-        if (isset($parameters['sql_logger'])) {
-            $configuration->setSQLLogger($parameters['sql_logger']);
+        foreach (self::CONFIG_SETTER_MAP as $parameter => $setter) {
+            if (isset($parameters[$parameter])) {
+                $configuration->{$setter}($parameters[$parameter]);
+            }
         }
 
-        if (isset($parameters['result_cache'])) {
-            Helper::setCacheToConfiguration($configuration, $parameters['result_cache'], 'ResultCache');
-        }
-
-        if (isset($parameters['schema_assets_filter'])) {
-            $configuration->setSchemaAssetsFilter($parameters['schema_assets_filter']);
-        }
-
-        if (isset($parameters['auto_commit'])) {
-            $configuration->setAutoCommit($parameters['auto_commit']);
-        }
-
-        if (isset($parameters['middlewares'])) {
-            $configuration->setMiddlewares($parameters['middlewares']);
+        foreach (self::CACHE_TYPE_MAP as $parameter => $type) {
+            if (isset($parameters[$parameter])) {
+                Helper::setCacheToConfiguration($configuration, $parameters[$parameter], $type);
+            }
         }
 
         return DriverManager::getConnection(
