@@ -98,8 +98,8 @@ final class CommandProvider
     public function getMigrationCommands(array $parameters, ?LoggerInterface $logger = null) : array
     {
         $configuration = new MigrationsConfiguration($parameters);
-        $entityManagerProvider = MigrationsEntityManagerLoader::withSimpleDefault($this->entityManagerRegistry);
-        $dependencyFactory = MigrationsDependencyFactory::fromEntityManager($configuration, $entityManagerProvider);
+        $entityManagerLoader = MigrationsEntityManagerLoader::withSimpleDefault($this->entityManagerRegistry);
+        $dependencyFactory = MigrationsDependencyFactory::fromEntityManager($configuration, $entityManagerLoader, $logger);
 
         return [
             new MigrationsCommand\CurrentCommand($dependencyFactory),

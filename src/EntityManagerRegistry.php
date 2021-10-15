@@ -14,7 +14,9 @@ namespace Sunrise\Bridge\Doctrine;
 /**
  * Import classes
  */
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\ORMException;
 use Doctrine\ORM\Proxy\Proxy;
 use Doctrine\Persistence\AbstractManagerRegistry as AbstractEntityManagerRegistry;
@@ -55,7 +57,7 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     private $serviceFactories = [];
 
     /**
-     * @var \Doctrine\DBAL\Connection[]|\Doctrine\ORM\EntityManager[]
+     * @var array<Connection|EntityManagerInterface>
      */
     private $services = [];
 
@@ -68,17 +70,15 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
         $this->connectionFactory = new ConnectionFactory();
         $this->entityManagerFactory = new EntityManagerFactory();
 
-        $connectionServiceFactory = function ($serviceName) {
-            return $this->connectionFactory->createConnection(
-                $this->serviceParameters[$serviceName] ?? []
-            );
+        $connectionServiceFactory = function (string $serviceName) : Connection {
+            $parameters = $this->serviceParameters[$serviceName] ?? [];
+            return $this->connectionFactory->createConnection($parameters);
         };
 
-        $entityManagerServiceFactory = function ($serviceName) {
-            return $this->entityManagerFactory->createEntityManager(
-                $this->getConnection($serviceName),
-                $this->serviceParameters[$serviceName] ?? []
-            );
+        $entityManagerServiceFactory = function (string $serviceName) : EntityManagerInterface {
+            $connection = $this->getConnection($serviceName);
+            $parameters = $this->serviceParameters[$serviceName] ?? [];
+            return $this->entityManagerFactory->createEntityManager($connection, $parameters);
         };
 
         $connectionNames = [];

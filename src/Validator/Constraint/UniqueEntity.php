@@ -25,10 +25,10 @@ use Symfony\Component\Validator\Constraint;
  * @NamedArgumentConstructor
  *
  * @Attributes({
- *   @Attribute("em", type="string"),
  *   @Attribute("fields", type="array<string>", required=true),
  *   @Attribute("message", type="string"),
  *   @Attribute("atPath", type="string"),
+ *   @Attribute("em", type="string"),
  * })
  */
 #[Attribute(Attribute::TARGET_CLASS|Attribute::IS_REPEATABLE)]
@@ -39,11 +39,6 @@ class UniqueEntity extends Constraint
      * @var string
      */
     public const NOT_UNIQUE_ERROR = 'd3cf3b2e-f934-422e-ae60-b4eca745aa33';
-
-    /**
-     * @var string|null
-     */
-    public $em = null;
 
     /**
      * @var string[]
@@ -61,21 +56,30 @@ class UniqueEntity extends Constraint
     public $atPath = null;
 
     /**
-     * @param string|null $em
+     * @var string|null
+     */
+    public $em = null;
+
+    /**
      * @param string[] $fields
      * @param string|null $message
      * @param string|null $atPath
+     * @param string|null $em
      */
     public function __construct(
-        ?stirng $em,
         array $fields,
-        ?string $message,
-        ?string $atPath
+        ?string $message = null,
+        ?string $atPath = null,
+        ?stirng $em = null
     ) {
-        $this->em = $em;
+        if (null === $message) {
+            $message = $this->message;
+        }
+
         $this->fields = $fields;
-        $this->message = $message ?? $this->message;
+        $this->message = $message;
         $this->atPath = $atPath;
+        $this->em = $em;
     }
 
     /**
