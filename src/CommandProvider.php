@@ -15,7 +15,7 @@ namespace Sunrise\Bridge\Doctrine;
  * Import classes
  */
 use Doctrine\DBAL\Tools\Console\Command as DBALCommand;
-use Doctrine\Migrations\Configuration\EntityManager\ManagerRegistryEntityManager as MigrationsEntityManagerLoader;
+use Doctrine\Migrations\Configuration\EntityManager\ManagerRegistryEntityManager as MigrationsEntityManagerProvider;
 use Doctrine\Migrations\Configuration\Migration\ConfigurationArray as MigrationsConfiguration;
 use Doctrine\Migrations\DependencyFactory as MigrationsDependencyFactory;
 use Doctrine\Migrations\Tools\Console\Command as MigrationsCommand;
@@ -97,9 +97,9 @@ final class CommandProvider
      */
     public function getMigrationCommands(array $parameters, ?LoggerInterface $logger = null) : array
     {
-        $configuration = new MigrationsConfiguration($parameters);
-        $entityManagerLoader = MigrationsEntityManagerLoader::withSimpleDefault($this->entityManagerRegistry);
-        $dependencyFactory = MigrationsDependencyFactory::fromEntityManager($configuration, $entityManagerLoader, $logger);
+        $config = new MigrationsConfiguration($parameters);
+        $managerProvider = MigrationsEntityManagerProvider::withSimpleDefault($this->entityManagerRegistry);
+        $dependencyFactory = MigrationsDependencyFactory::fromEntityManager($config, $managerProvider, $logger);
 
         return [
             new MigrationsCommand\CurrentCommand($dependencyFactory),

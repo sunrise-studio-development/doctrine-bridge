@@ -23,6 +23,7 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 /**
  * Import functions
  */
+use function count;
 use function get_class;
 use function is_array;
 use function is_string;
@@ -56,6 +57,8 @@ class UniqueEntityValidator extends ConstraintValidator
      *
      * @throws ConstraintDefinitionException
      * @throws UnexpectedTypeException
+     *
+     * @return void
      */
     public function validate(object $entity, Constraint $constraint)
     {
@@ -71,7 +74,7 @@ class UniqueEntityValidator extends ConstraintValidator
         // but the "getManager" method should throw an exception...
         if (null === $entityManager) {
             throw new ConstraintDefinitionException(sprintf(
-                'Unable to get Entity Manager for %s.',
+                'Unable to get Entity Manager for the entity "%s".',
                 $entityName
             ));
         }
@@ -84,7 +87,7 @@ class UniqueEntityValidator extends ConstraintValidator
             if (!$entityMetadata->hasField($fieldName) &&
                 !$entityMetadata->hasAssociation($fieldName)) {
                 throw new ConstraintDefinitionException(sprintf(
-                    'The "%s" field is not mapped by Doctrine.',
+                    'The field "%s" is not mapped by Doctrine.',
                     $fieldName
                 ));
             }
@@ -134,10 +137,10 @@ class UniqueEntityValidator extends ConstraintValidator
      *
      * @param Constraint $constraint
      *
-     * @return void
-     *
      * @throws ConstraintDefinitionException
      * @throws UnexpectedTypeException
+     *
+     * @return void
      */
     private function validateConstraint(Constraint $constraint) : void
     {

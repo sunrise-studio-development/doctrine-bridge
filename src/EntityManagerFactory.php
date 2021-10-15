@@ -26,6 +26,8 @@ final class EntityManagerFactory
 {
 
     /**
+     * Creates a new entity manager instance from the parameters
+     *
      * @param Connection $connection
      * @param array $parameters
      *

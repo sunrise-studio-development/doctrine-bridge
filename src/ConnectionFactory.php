@@ -25,6 +25,8 @@ final class ConnectionFactory
 {
 
     /**
+     * Creates a new connection instance from the given parameters
+     *
      * @param array $parameters
      *
      * @return Connection

@@ -24,22 +24,46 @@ use Psr\Cache\CacheItemPoolInterface;
 /**
  * Import functions
  */
+use function is_array;
 use function method_exists;
 
 /**
  * Helper
+ *
+ * @internal
  */
 final class Helper
 {
 
     /**
+     * @param array $array
+     *
+     * @return bool
+     */
+    public static function isIndexedArray($array) : bool
+    {
+        if (!is_array($array)) {
+            return false;
+        }
+
+        $i = -1;
+        foreach ($array as $key => $_) {
+            if (++$i !== $key) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param DbalConfiguration|OrmConfiguration $configuration
      * @param Cache|CacheItemPoolInterface $cache
      * @param string $type
-     * @param DbalConfiguration|OrmConfiguration $configuration
      *
      * @return void
      */
-    public static function setCacheToConfiguration($cache, string $type, $configuration) : void
+    public static function setCacheToConfiguration($configuration, $cache, string $type) : void
     {
         $newSetter = 'set' . $type;
         $oldSetter = 'set' . $type . 'Impl';

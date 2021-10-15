@@ -62,6 +62,8 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     private $services = [];
 
     /**
+     * Initializes the registry
+     *
      * @param array $configuration
      * @param string|null $registryName
      */
@@ -88,7 +90,7 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
             $serviceParameters = (array) $serviceParameters;
 
             if (isset($serviceParameters['dbal'])) {
-                $connectionName = $serviceName . '.connection';
+                $connectionName = $serviceName . '.conn';
                 $connectionNames[$serviceName] = $connectionName;
                 $this->serviceParameters[$connectionName] = (array) $serviceParameters['dbal'];
                 $this->serviceFactories[$connectionName] = $connectionServiceFactory;
@@ -102,11 +104,10 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
             }
 
             if (isset($serviceParameters['types'])) {
-                $typeRegistry = Type::getTypeRegistry();
-                foreach ($serviceParameters['types'] as $typeName => $type) {
-                    $typeRegistry->has($typeName) ?
-                    $typeRegistry->override($typeName, $type) :
-                    $typeRegistry->register($typeName, $type);
+                foreach ($serviceParameters['types'] as $typeName => $className) {
+                    Type::hasType($typeName) ?
+                    Type::overrideType($typeName, $className) :
+                    Type::addType($typeName, $className);
                 }
             }
         }
