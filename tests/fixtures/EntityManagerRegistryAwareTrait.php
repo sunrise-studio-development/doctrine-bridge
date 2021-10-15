@@ -2,9 +2,9 @@
 
 namespace Sunrise\Bridge\Doctrine\Tests\Fixtures;
 
-use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry as ManagerRegistryInterface;
+use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 
 trait EntityManagerRegistryAwareTrait
 {
@@ -12,10 +12,20 @@ trait EntityManagerRegistryAwareTrait
     /**
      * @return array
      */
-    public function getConfiguration() : array
+    public function getDoctrineConfig() : array
     {
         return (function () : array {
-            return require __DIR__ . '/configuration.php';
+            return require __DIR__ . '/config/doctrine.php';
+        })->call($this);
+    }
+
+    /**
+     * @var array
+     */
+    public function getMigrationsConfig() : array
+    {
+        return (function () : array {
+            return require __DIR__ . '/config/migrations.php';
         })->call($this);
     }
 
@@ -26,16 +36,16 @@ trait EntityManagerRegistryAwareTrait
      */
     private function getEntityManagerRegistry(?string $name = null) : ManagerRegistryInterface
     {
-        $configuration = $this->getConfiguration();
+        $config = $this->getDoctrineConfig();
 
-        $entityManagerRegistry = new EntityManagerRegistry($configuration['doctrine'] ?? [], $name);
+        $registry = new EntityManagerRegistry($config, $name);
 
-        foreach ($entityManagerRegistry->getManagers() as $manager) {
+        foreach ($registry->getManagers() as $manager) {
             $schema = new SchemaTool($manager);
             $schema->dropSchema($manager->getMetadataFactory()->getAllMetadata());
             $schema->createSchema($manager->getMetadataFactory()->getAllMetadata());
         }
 
-        return $entityManagerRegistry;
+        return $registry;
     }
 }
