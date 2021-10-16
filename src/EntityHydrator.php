@@ -164,8 +164,8 @@ final class EntityHydrator
     /**
      * Hydrates associations of the given entity with the given data
      *
-     * Note that depending on the type of the given field's association,
-     * a different strategy of its hydration will be applied.
+     * Note that different hydration strategies will be applied,
+     * depending on the type of association.
      *
      * @param ClassMetadataInfo $metadata
      * @param object $entity

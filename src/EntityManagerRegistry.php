@@ -83,14 +83,14 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
                 $connectionName = $serviceName . '.conn';
                 $connectionNames[$serviceName] = $connectionName;
                 $this->serviceParameters[$connectionName] = (array) $serviceParameters['dbal'];
-                $this->serviceFactories[$connectionName] = $this->createConnectionServiceFactory();
+                $this->serviceFactories[$connectionName] = $this->createConnectionLazyServiceFactory();
             }
 
             if (isset($serviceParameters['orm'])) {
                 $entityManagerName = $serviceName;
                 $entityManagerNames[$serviceName] = $entityManagerName;
                 $this->serviceParameters[$entityManagerName] = (array) $serviceParameters['orm'];
-                $this->serviceFactories[$entityManagerName] = $this->createEntityManagerServiceFactory();
+                $this->serviceFactories[$entityManagerName] = $this->createEntityManagerLazyServiceFactory();
             }
 
             if (isset($serviceParameters['types'])) {
@@ -123,6 +123,14 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     public function getHydrator(?string $managerName = null) : EntityHydrator
     {
         return new EntityHydrator($this->getManager($managerName));
+    }
+
+    /**
+     * @return EntityManagerMaintainer
+     */
+    public function getMaintainer() : EntityManagerMaintainer
+    {
+        return new EntityManagerMaintainer($this);
     }
 
     /**
@@ -175,11 +183,11 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     /**
      * @return Closure
      */
-    private function createConnectionServiceFactory() : Closure
+    private function createConnectionLazyServiceFactory() : Closure
     {
-        return static function (self $scope, string $serviceName) : Connection {
-            return $scope->connectionFactory->createConnection(
-                $scope->serviceParameters[$serviceName] ?? []
+        return static function (self $self, string $serviceName) : Connection {
+            return $self->connectionFactory->createConnection(
+                $self->serviceParameters[$serviceName] ?? []
             );
         };
     }
@@ -187,12 +195,12 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     /**
      * @return Closure
      */
-    private function createEntityManagerServiceFactory() : Closure
+    private function createEntityManagerLazyServiceFactory() : Closure
     {
-        return static function (self $scope, string $serviceName) : EntityManagerInterface {
-            return $scope->entityManagerFactory->createEntityManager(
-                $scope->getConnection($serviceName),
-                $scope->serviceParameters[$serviceName] ?? []
+        return static function (self $self, string $serviceName) : EntityManagerInterface {
+            return $self->entityManagerFactory->createEntityManager(
+                $self->getConnection($serviceName),
+                $self->serviceParameters[$serviceName] ?? []
             );
         };
     }
