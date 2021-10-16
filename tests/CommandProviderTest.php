@@ -17,7 +17,7 @@ class CommandProviderTest extends TestCase
         $registry = $this->getEntityManagerRegistry();
         $provider = new CommandProvider($registry);
 
-        $this->assertCount(2, $provider->getDBALCommands());
+        $this->assertCount(2, $provider->getDbalCommands());
     }
 
     public function testGetOrmCommands() : void
@@ -25,10 +25,10 @@ class CommandProviderTest extends TestCase
         $registry = $this->getEntityManagerRegistry();
         $provider = new CommandProvider($registry);
 
-        $this->assertCount(16, $provider->getORMCommands());
+        $this->assertCount(16, $provider->getOrmCommands());
     }
 
-    public function testGetMigrationCommands() : void
+    public function testGetMigrationsCommands() : void
     {
         $registry = $this->getEntityManagerRegistry();
         $provider = new CommandProvider($registry);
@@ -36,6 +36,6 @@ class CommandProviderTest extends TestCase
         $config = $this->getMigrationsConfig();
         $logger = $this->createMock(LoggerInterface::class);
 
-        $this->assertCount(13, $provider->getMigrationCommands($config, $logger));
+        $this->assertCount(13, $provider->getMigrationsCommands($config, $logger));
     }
 }
