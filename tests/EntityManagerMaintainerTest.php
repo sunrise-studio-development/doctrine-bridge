@@ -16,7 +16,7 @@ class EntityManagerMaintainerTest extends TestCase
     public function testCloseAllConnections() : void
     {
         $registry = $this->getEntityManagerRegistry();
-        $maintainer = new EntityManagerMaintainer($registry);
+        $maintainer = $registry->getMaintainer();
 
         $this->assertTrue($registry->getConnection('foo')->isConnected());
         $this->assertTrue($registry->getConnection('bar')->isConnected());
@@ -40,7 +40,7 @@ class EntityManagerMaintainerTest extends TestCase
         };
 
         $registry = $this->getEntityManagerRegistry();
-        $maintainer = new EntityManagerMaintainer($registry);
+        $maintainer = $registry->getMaintainer();
 
         $fooOnClear = clone $onClearProto;
         $barOnClear = clone $onClearProto;
@@ -60,7 +60,7 @@ class EntityManagerMaintainerTest extends TestCase
     public function testReopenAllManagers() : void
     {
         $registry = $this->getEntityManagerRegistry();
-        $maintainer = new EntityManagerMaintainer($registry);
+        $maintainer = $registry->getMaintainer();
 
         $this->assertTrue($registry->getManager('foo')->isOpen());
         $this->assertTrue($registry->getManager('bar')->isOpen());

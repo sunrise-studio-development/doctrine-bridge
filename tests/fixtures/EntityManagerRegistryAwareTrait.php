@@ -6,6 +6,8 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry as ManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 
+use function array_replace_recursive;
+
 trait EntityManagerRegistryAwareTrait
 {
 
@@ -31,12 +33,19 @@ trait EntityManagerRegistryAwareTrait
 
     /**
      * @param string|null $name
+     * @param array<string, mixed>|null $parameters
      *
      * @return ManagerRegistryInterface
      */
-    private function getEntityManagerRegistry(?string $name = null) : ManagerRegistryInterface
-    {
+    private function getEntityManagerRegistry(
+        ?string $name = null,
+        ?array $parameters = null
+    ) : ManagerRegistryInterface {
         $config = $this->getDoctrineConfig();
+
+        if (isset($parameters)) {
+            $config = array_replace_recursive($config, $parameters);
+        }
 
         $registry = new EntityManagerRegistry($config, $name);
 
