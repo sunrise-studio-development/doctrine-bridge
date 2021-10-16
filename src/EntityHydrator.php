@@ -148,7 +148,7 @@ final class EntityHydrator
             try {
                 $value = $type->convertToPHPValue($data[$mapping['fieldName']], $platform);
             } catch (ConversionException $e) {
-                // data validation goes beyond the hydrator...
+                // data validation goes beyond the scope of the hydrator...
                 continue;
             }
 
@@ -163,6 +163,9 @@ final class EntityHydrator
 
     /**
      * Hydrates associations of the given entity with the given data
+     *
+     * Note that depending on the type of the given field's association,
+     * a different strategy of its hydration will be applied.
      *
      * @param ClassMetadataInfo $metadata
      * @param object $entity
@@ -295,8 +298,7 @@ final class EntityHydrator
                 $setter->invoke($entity, $object);
             }
 
-            // it is not a confirmation of setting,
-            // it is an indication of type acceptance...
+            // it's just an indication that the value was successfully handled...
             return true;
         }
 

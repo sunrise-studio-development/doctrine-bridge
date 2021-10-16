@@ -21,10 +21,22 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 
 /**
+ * Import constants
+ */
+use const PHP_MAJOR_VERSION;
+
+/**
  * EntityManagerFactory
  */
 final class EntityManagerFactory
 {
+
+    /**
+     * @var string
+     *
+     * @link https://www.doctrine-project.org/projects/doctrine-orm/en/2.9/reference/annotations-reference.html
+     */
+    public const METADATA_ANNOTATION_DRIVER_NAME = 'annotations';
 
     /**
      * @var string
@@ -35,16 +47,16 @@ final class EntityManagerFactory
 
     /**
      * @var string
-     *
-     * @link https://www.doctrine-project.org/projects/doctrine-orm/en/2.9/reference/annotations-reference.html
      */
-    public const METADATA_ANNOTATION_DRIVER_NAME = 'annotations';
+    public const DEFAULT_METADATA_DRIVER_NAME = PHP_MAJOR_VERSION < 8 ?
+                                                self::METADATA_ANNOTATION_DRIVER_NAME :
+                                                self::METADATA_ATTRIBUTE_DRIVER_NAME;
 
     /**
-     * @var array<string, mixed>
+     * @var array<string, scalar>
      */
     private const DEFAULT_PARAMS = [
-        'metadata_driver' => self::METADATA_ANNOTATION_DRIVER_NAME,
+        'metadata_driver' => self::DEFAULT_METADATA_DRIVER_NAME,
         'proxy_auto_generate' => true,
         'proxy_namespace' => 'DoctrineProxies',
     ];
@@ -65,7 +77,7 @@ final class EntityManagerFactory
         'entity_namespaces' => 'setEntityNamespaces',
         'metadata_driver' => 'setMetadataDriverImpl',
         'naming_strategy' => 'setNamingStrategy',
-        'proxy_auto_generate' => 'setAutoGenerateProxyClasses', // alias to "auto_generate_proxy_classes"
+        'proxy_auto_generate' => 'setAutoGenerateProxyClasses', // alias to auto_generate_proxy_classes
         'proxy_dir' => 'setProxyDir',
         'proxy_namespace' => 'setProxyNamespace',
         'quote_strategy' => 'setQuoteStrategy',
@@ -87,7 +99,7 @@ final class EntityManagerFactory
      * Creates a new entity manager instance from the parameters
      *
      * @param Connection $connection
-     * @param array $parameters
+     * @param array<string, mixed> $parameters
      *
      * @return EntityManagerInterface
      */
@@ -98,16 +110,16 @@ final class EntityManagerFactory
         $configuration = new Configuration();
 
         if (isset($parameters['entity_locations'], $parameters['metadata_driver'])) {
-            if (self::METADATA_ATTRIBUTE_DRIVER_NAME === $parameters['metadata_driver']) {
-                $parameters['metadata_driver'] = new AttributeDriver(
-                    (array) $parameters['entity_locations']
+            if (self::METADATA_ANNOTATION_DRIVER_NAME === $parameters['metadata_driver']) {
+                $parameters['metadata_driver'] = $configuration->newDefaultAnnotationDriver(
+                    (array) $parameters['entity_locations'],
+                    false
                 );
             }
 
-            if (self::METADATA_ANNOTATION_DRIVER_NAME === $parameters['metadata_driver']) {
-                $parameters['metadata_driver'] = $configuration->newDefaultAnnotationDriver(
-                    $parameters['entity_locations'],
-                    false
+            if (self::METADATA_ATTRIBUTE_DRIVER_NAME === $parameters['metadata_driver']) {
+                $parameters['metadata_driver'] = new AttributeDriver(
+                    (array) $parameters['entity_locations']
                 );
             }
         }

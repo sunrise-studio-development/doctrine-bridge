@@ -93,7 +93,7 @@ final class CommandProvider
      *
      * @return \Symfony\Component\Console\Command\Command[]
      */
-    public function getDBALCommands() : array
+    public function getDbalCommands() : array
     {
         $connectionProvider = new ConnectionProvider($this->entityManagerRegistry);
 
@@ -110,7 +110,7 @@ final class CommandProvider
      *
      * @return \Symfony\Component\Console\Command\Command[]
      */
-    public function getORMCommands() : array
+    public function getOrmCommands() : array
     {
         $entityManagerProvider = new EntityManagerProvider($this->entityManagerRegistry);
 
@@ -123,14 +123,14 @@ final class CommandProvider
     }
 
     /**
-     * Gets all migration commands
+     * Gets all migrations's commands
      *
-     * @param array $parameters
+     * @param array<string, mixed> $parameters
      * @param LoggerInterface|null $logger
      *
      * @return \Symfony\Component\Console\Command\Command[]
      */
-    public function getMigrationCommands(array $parameters, ?LoggerInterface $logger = null) : array
+    public function getMigrationsCommands(array $parameters, ?LoggerInterface $logger = null) : array
     {
         // TODO: maybe this code should be moved somewhere...
         $configuration = new ConfigurationArray($parameters);

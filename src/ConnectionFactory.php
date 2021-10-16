@@ -25,7 +25,7 @@ final class ConnectionFactory
 {
 
     /**
-     * @var array<string, mixed>
+     * @var array<string, scalar>
      */
     private const DEFAULT_PARAMS = [
         'auto_commit' => true,
@@ -51,7 +51,7 @@ final class ConnectionFactory
     /**
      * Creates a new connection instance from the given parameters
      *
-     * @param array $parameters
+     * @param array<string, mixed> $parameters
      *
      * @return Connection
      */
