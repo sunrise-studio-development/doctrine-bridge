@@ -109,7 +109,7 @@ class EntityHydratorTest extends TestCase
         $this->assertSame('', $object->getName());
     }
 
-    public function testHydrateToOneAssociation() : void
+    public function testHydrateOneAssociation() : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
@@ -129,7 +129,7 @@ class EntityHydratorTest extends TestCase
         $this->assertSame($data['category']['summary'], $object->getCategory()->getSummary());
     }
 
-    public function testHydrateToManyAssociations() : void
+    public function testHydrateManyAssociations() : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
@@ -156,5 +156,73 @@ class EntityHydratorTest extends TestCase
 
         $this->assertSame($data['tags'][1]['name'], $object->getTags()->offsetGet(1)->getName());
         $this->assertSame($data['tags'][1]['summary'], $object->getTags()->offsetGet(1)->getSummary());
+    }
+
+    public function testHydrateOneAssociationUsingId() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+
+        $category = new Fixtures\Entity\Common\Category();
+        $category->setName('foo');
+        $category->setSummary('Lorem ipsum');
+
+        $registry->getManager()->persist($category);
+        $registry->getManager()->flush();
+
+        $data = [
+            'category' => $category->getid(),
+        ];
+
+        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame($category, $object->getCategory());
+    }
+
+    public function testHydrateManyAssociationsUsingId() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+
+        $tag = new Fixtures\Entity\Common\Tag();
+        $tag->setName('foo');
+        $tag->setSummary('Lorem ipsum');
+
+        $registry->getManager()->persist($tag);
+        $registry->getManager()->flush();
+
+        $data = [
+            'tags' => $tag->getId(),
+        ];
+
+        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame([$tag], $object->getTags()->getValues());
+    }
+
+    public function testHydrateManyAssociationsUsingIds() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+
+        $tag1 = new Fixtures\Entity\Common\Tag();
+        $tag1->setName('foo');
+        $tag1->setSummary('Lorem ipsum');
+
+        $tag2 = new Fixtures\Entity\Common\Tag();
+        $tag2->setName('bar');
+        $tag2->setSummary('Lorem ipsum');
+
+        $registry->getManager()->persist($tag1);
+        $registry->getManager()->persist($tag2);
+        $registry->getManager()->flush();
+
+        $data = [
+            'tags' => [
+                $tag1->getId(),
+                $tag2->getId(),
+            ],
+        ];
+
+        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame([$tag1, $tag2], $object->getTags()->getValues());
     }
 }
