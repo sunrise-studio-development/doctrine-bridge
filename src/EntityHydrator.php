@@ -14,30 +14,46 @@ namespace Sunrise\Bridge\Doctrine;
 /**
  * Import classes
  */
-use Doctrine\DBAL\Types\ConversionException;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadataInfo;
 use Symfony\Component\String\Inflector\EnglishInflector;
+use DateInterval;
+use DateTime;
+use DateTimeImmutable;
+use DateTimeInterface;
 use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionMethod;
+use ReflectionType;
+use ReflectionUnionType;
 
 /**
  * Import functions
  */
 use function array_key_exists;
 use function class_exists;
+use function date_create;
+use function date_create_immutable;
+use function date_diff;
+use function filter_var;
 use function get_class;
 use function in_array;
+use function is_array;
+use function is_bool;
 use function is_int;
 use function is_object;
+use function is_scalar;
 use function is_string;
 use function sprintf;
 use function str_replace;
 use function strpos;
 use function ucfirst;
 use function ucwords;
+
+/**
+ * Import constants
+ */
+use const FILTER_VALIDATE_BOOLEAN;
 
 /**
  * EntityHydrator
@@ -128,12 +144,10 @@ final class EntityHydrator
         $platform = $this->entityManager->getConnection()->getDatabasePlatform();
 
         foreach ($metadata->fieldMappings as $mapping) {
-            // the field isn't represented in the data...
             if (!array_key_exists($mapping['fieldName'], $data)) {
                 continue;
             }
 
-            // identifiers can't be hydrated...
             if ($metadata->isIdentifier($mapping['fieldName'])) {
                 continue;
             }
@@ -143,18 +157,22 @@ final class EntityHydrator
                 continue;
             }
 
-            $type = Type::getType($mapping['type']);
+            $value = $data[$mapping['fieldName']];
+            $param = $setter->getParameters()[0];
 
-            try {
-                $value = $type->convertToPHPValue($data[$mapping['fieldName']], $platform);
-            } catch (ConversionException $e) {
-                // data validation goes beyond the scope of the hydrator...
+            if (null === $value) {
+                if ($param->allowsNull()) {
+                    $setter->invoke($entity, null);
+                }
+
                 continue;
             }
 
-            // the seter doesn't expect null...
-            if (null === $value && !$setter->getParameters()[0]->allowsNull()) {
-                continue;
+            if ($param->hasType()) {
+                $value = $this->typizeFieldValue($param->getType(), $value);
+                if (null === $value) {
+                    continue;
+                }
             }
 
             $setter->invoke($entity, $value);
@@ -176,7 +194,6 @@ final class EntityHydrator
     private function hydrateAssociations(ClassMetadataInfo $metadata, object $entity, array $data) : void
     {
         foreach ($metadata->associationMappings as $mapping) {
-            // the field isn't represented in the data...
             if (!array_key_exists($mapping['fieldName'], $data)) {
                 continue;
             }
@@ -304,7 +321,6 @@ final class EntityHydrator
 
         if (Helper::isDict($value)) {
             $object = $this->hydrate($targetEntity, $value);
-
             $setter->invoke($entity, $object);
 
             return true;
@@ -383,5 +399,116 @@ final class EntityHydrator
         $fieldName = str_replace(' ', '', $fieldName);
 
         return $fieldName;
+    }
+
+    /**
+     * Typizes the given value to the given type
+     *
+     * Returns null if the given value cannot be typized.
+     *
+     * @param ReflectionType $type
+     * @param bool|int|float|string|array|stdClass $value
+     *
+     * @return bool|int|float|string|array|stdClass|DateTime|DateTimeImmutable|DateInterval|null
+     */
+    private function typizeFieldValue(ReflectionType $type, $value)
+    {
+        // union type isn't supported...
+        if ($type instanceof ReflectionUnionType) {
+            return null;
+        }
+
+        switch ($type->getName()) {
+            case 'mixed':
+                return $value;
+            case 'bool':
+                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L273
+                return is_bool($value) ? $value : filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            case 'int':
+                return is_scalar($value) ? (int) $value : null;
+            case 'float':
+                return is_scalar($value) ? (float) $value : null;
+            case 'string':
+                return is_scalar($value) ? (string) $value : null;
+            case 'array':
+                return (is_array($value) || is_object($value)) ? (array) $value : null;
+            case 'object':
+                return (is_object($value) || is_array($value)) ? (object) $value : null;
+            case DateTime::class:
+            case DateTimeInterface::class:
+                return $this->createDateTime($value);
+            case DateTimeImmutable::class:
+                return $this->createDateTimeImmutable($value);
+            case DateInterval::class:
+                return $this->createDateInterval($value);
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates DateTime object from the given value
+     *
+     * Returns null if the object cannot be created.
+     *
+     * @param mixed $value
+     *
+     * @return DateTime|null
+     */
+    private function createDateTime($value) : ?DateTime
+    {
+        if (is_string($value)) {
+            return date_create($value) ?: null;
+        }
+
+        if (is_int($value)) {
+            return date_create()->setTimestamp($value);
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates DateTimeImmutable object from the given value
+     *
+     * Returns null if the object cannot be created.
+     *
+     * @param mixed $value
+     *
+     * @return DateTimeImmutable|null
+     */
+    private function createDateTimeImmutable($value) : ?DateTimeImmutable
+    {
+        if (is_string($value)) {
+            return date_create_immutable($value) ?: null;
+        }
+
+        if (is_int($value)) {
+            return date_create_immutable()->setTimestamp($value);
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates DateInterval object from the given value
+     *
+     * Returns null if the object cannot be created.
+     *
+     * @param mixed $value
+     *
+     * @return DateInterval|null
+     */
+    private function createDateInterval($value) : ?DateInterval
+    {
+        if (is_array($value) && isset($value['start'], $value['end'])) {
+            $start = $this->createDateTime($value['start']);
+            $end = $this->createDateTime($value['end']);
+            if (isset($start, $end)) {
+                return date_diff($start, $end) ?: null;
+            }
+        }
+
+        return null;
     }
 }
