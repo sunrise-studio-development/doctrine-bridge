@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Sunrise\Bridge\Doctrine\Tests\Fixtures\Entity;
+namespace Sunrise\Bridge\Doctrine\Tests\Fixtures\Entity\Common;
 
 use Doctrine\ORM\Mapping as ORM;
 
