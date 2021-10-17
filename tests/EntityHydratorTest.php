@@ -16,9 +16,9 @@ class EntityHydratorTest extends TestCase
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Post::class, []);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, []);
 
-        $this->assertInstanceOf(Fixtures\Entity\Post::class, $object);
+        $this->assertInstanceOf(Fixtures\Entity\Common\Post::class, $object);
     }
 
     public function testInitAlreadyInitedObject() : void
@@ -26,7 +26,7 @@ class EntityHydratorTest extends TestCase
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
 
-        $object = new Fixtures\Entity\Post();
+        $object = new Fixtures\Entity\Common\Post();
 
         $this->assertSame($object, $hydrator->hydrate($object, []));
     }
@@ -48,7 +48,7 @@ class EntityHydratorTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $hydrator->hydrate(Fixtures\Entity\UnhydrableEntity::class, []);
+        $hydrator->hydrate(Fixtures\Entity\Common\UnhydrableEntity::class, []);
     }
 
     public function testHydrateFields() : void
@@ -61,7 +61,7 @@ class EntityHydratorTest extends TestCase
             'summary' => 'bf031afd-387c-4172-92fb-139268d8b6bf',
         ];
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertSame($data['name'], $object->getName());
         $this->assertSame($data['summary'], $object->getSummary());
@@ -76,7 +76,7 @@ class EntityHydratorTest extends TestCase
             'id' => 'a3c6bccf-a8a8-45ed-9c07-2e50c0519021',
         ];
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertNotSame($data['id'], $object->getId());
     }
@@ -90,7 +90,7 @@ class EntityHydratorTest extends TestCase
             'createdAt' => '1970-01-01 00:00:00',
         ];
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertNotSame($data['createdAt'], $object->getCreatedAt()->format('Y-m-d H:i:s'));
     }
@@ -104,7 +104,7 @@ class EntityHydratorTest extends TestCase
             'name' => ['value'],
         ];
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertSame('', $object->getName());
     }
@@ -121,7 +121,7 @@ class EntityHydratorTest extends TestCase
             ],
         ];
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertNotNull($object->getCategory());
 
@@ -147,7 +147,7 @@ class EntityHydratorTest extends TestCase
             ],
         ];
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertCount(2, $object->getTags());
 
