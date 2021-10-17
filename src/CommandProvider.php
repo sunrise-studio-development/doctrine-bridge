@@ -129,6 +129,8 @@ final class CommandProvider
      * @param LoggerInterface|null $logger
      *
      * @return \Symfony\Component\Console\Command\Command[]
+     *
+     * @link https://www.doctrine-project.org/projects/doctrine-migrations/en/3.2/reference/configuration.html
      */
     public function getMigrationsCommands(array $parameters, ?LoggerInterface $logger = null) : array
     {

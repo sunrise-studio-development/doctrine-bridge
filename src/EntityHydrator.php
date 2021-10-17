@@ -25,6 +25,7 @@ use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionType;
+use ReflectionNamedType;
 use ReflectionUnionType;
 
 /**
@@ -199,7 +200,7 @@ final class EntityHydrator
             }
 
             if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_ONE, ClassMetadataInfo::MANY_TO_ONE])) {
-                $this->hydrateFieldWithToOneAssociation(
+                $this->hydrateFieldWithOneAssociation(
                     $metadata,
                     $entity,
                     $mapping['fieldName'],
@@ -211,7 +212,7 @@ final class EntityHydrator
             }
 
             if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_MANY, ClassMetadataInfo::MANY_TO_MANY])) {
-                $this->hydrateFieldWithToManyAssociation(
+                $this->hydrateFieldWithManyAssociations(
                     $metadata,
                     $entity,
                     $mapping['fieldName'],
@@ -233,7 +234,7 @@ final class EntityHydrator
      *
      * @return void
      */
-    private function hydrateFieldWithToOneAssociation(
+    private function hydrateFieldWithOneAssociation(
         ClassMetadataInfo $metadata,
         object $entity,
         string $fieldName,
@@ -253,7 +254,10 @@ final class EntityHydrator
             return;
         }
 
-        $this->setAssociationToField($entity, $setter, $targetEntity, $value);
+        $object = $this->resolveAssociation($targetEntity, $value);
+        if (isset($object)) {
+            $setter->invoke($entity, $object);
+        }
     }
 
     /**
@@ -265,7 +269,7 @@ final class EntityHydrator
      *
      * @return void
      */
-    private function hydrateFieldWithToManyAssociation(
+    private function hydrateFieldWithManyAssociations(
         ClassMetadataInfo $metadata,
         object $entity,
         string $fieldName,
@@ -282,51 +286,39 @@ final class EntityHydrator
             return;
         }
 
-        $isSuccess = $this->setAssociationToField($entity, $adder, $targetEntity, $value);
-        if (true === $isSuccess) {
+        $object = $this->resolveAssociation($targetEntity, $value);
+        if (isset($object)) {
+            $adder->invoke($entity, $object);
             return;
         }
 
         if (Helper::isList($value)) {
             foreach ($value as $item) {
-                $this->setAssociationToField($entity, $adder, $targetEntity, $item);
+                $object = $this->resolveAssociation($targetEntity, $item);
+                if (isset($object)) {
+                    $adder->invoke($entity, $object);
+                }
             }
         }
     }
 
     /**
-     * @param object $entity
-     * @param ReflectionMethod $setter
      * @param string $targetEntity
      * @param mixed $value
      *
-     * @return bool
+     * @return object|null
      */
-    private function setAssociationToField(
-        object $entity,
-        ReflectionMethod $setter,
-        string $targetEntity,
-        $value
-    ) : bool {
-        // such value can only be an identifier...
+    private function resolveAssociation(string $targetEntity, $value) : ?object
+    {
         if (is_int($value) || is_string($value)) {
-            $object = $this->entityManager->getReference($targetEntity, $value);
-            if (isset($object)) {
-                $setter->invoke($entity, $object);
-            }
-
-            // it's just an indication that the value was successfully handled...
-            return true;
+            return $this->entityManager->getReference($targetEntity, $value);
         }
 
         if (Helper::isDict($value)) {
-            $object = $this->hydrate($targetEntity, $value);
-            $setter->invoke($entity, $object);
-
-            return true;
+            return $this->hydrate($targetEntity, $value);
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -339,8 +331,6 @@ final class EntityHydrator
     {
         $camelizedFieldName = $this->camelizeFieldName($fieldName);
 
-        // Sometimes it's not possible to determine a unique singular/plural form for the given word.
-        // In those cases, the methods return an array with all the possible forms.
         $singularFieldNames = (array) (new EnglishInflector)->singularize($camelizedFieldName);
 
         foreach ($singularFieldNames as $singularFieldName) {
@@ -406,7 +396,7 @@ final class EntityHydrator
      *
      * Returns null if the given value cannot be typized.
      *
-     * @param ReflectionType $type
+     * @param ReflectionNamedType|ReflectionUnionType $type
      * @param bool|int|float|string|array|stdClass $value
      *
      * @return bool|int|float|string|array|stdClass|DateTime|DateTimeImmutable|DateInterval|null
@@ -417,6 +407,8 @@ final class EntityHydrator
         if ($type instanceof ReflectionUnionType) {
             return null;
         }
+
+        /** @var ReflectionNamedType $type */
 
         switch ($type->getName()) {
             case 'mixed':
