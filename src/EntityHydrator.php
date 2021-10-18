@@ -36,14 +36,15 @@ use function class_exists;
 use function date_create;
 use function date_create_immutable;
 use function date_diff;
+use function explode;
 use function filter_var;
 use function get_class;
 use function in_array;
 use function is_array;
 use function is_bool;
+use function is_float;
 use function is_int;
 use function is_object;
-use function is_scalar;
 use function is_string;
 use function sprintf;
 use function str_replace;
@@ -54,7 +55,10 @@ use function ucwords;
 /**
  * Import constants
  */
+use const FILTER_NULL_ON_FAILURE;
 use const FILTER_VALIDATE_BOOLEAN;
+use const FILTER_VALIDATE_FLOAT;
+use const FILTER_VALIDATE_INT;
 
 /**
  * EntityHydrator
@@ -142,8 +146,6 @@ final class EntityHydrator
      */
     private function hydrateFields(ClassMetadataInfo $metadata, object $entity, array $data) : void
     {
-        $platform = $this->entityManager->getConnection()->getDatabasePlatform();
-
         foreach ($metadata->fieldMappings as $mapping) {
             if (!array_key_exists($mapping['fieldName'], $data)) {
                 continue;
@@ -414,18 +416,31 @@ final class EntityHydrator
             case 'mixed':
                 return $value;
             case 'bool':
+                // if the value isn't boolean, then we will use filter_var, because it will give us the ability to
+                // specify boolean values as strings. this behavior is great for html forms. details at:
+                //
                 // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L273
-                return is_bool($value) ? $value : filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                return is_bool($value) ? $value : filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             case 'int':
-                return is_scalar($value) ? (int) $value : null;
+                // it's senseless to convert the value type if it's not a number, so we will use filter_var to correct
+                // converting the value type to int. also remember that string numbers must be between PHP_INT_MIN and
+                // PHP_INT_MAX, otherwise the result will be null. this behavior is great for html forms. details at:
+                //
+                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L197
+                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L94
+                return is_int($value) ? $value : filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
             case 'float':
-                return is_scalar($value) ? (float) $value : null;
+                // it's senseless to convert the value type if it's not a number, so we will use filter_var to correct
+                // converting the value type to float. this behavior is great for html forms. details at:
+                //
+                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L342
+                return is_float($value) ? $value : filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
             case 'string':
-                return is_scalar($value) ? (string) $value : null;
+                return is_string($value) ? $value : null;
             case 'array':
-                return (is_array($value) || is_object($value)) ? (array) $value : null;
+                return is_array($value) ? $value : null;
             case 'object':
-                return (is_object($value) || is_array($value)) ? (object) $value : null;
+                return is_object($value) ? $value : null;
             case DateTime::class:
             case DateTimeInterface::class:
                 return $this->createDateTime($value);
@@ -449,11 +464,11 @@ final class EntityHydrator
      */
     private function createDateTime($value) : ?DateTime
     {
-        if (is_string($value)) {
+        if ($value instanceof DateTime) {
+            return $value;
+        } elseif (is_string($value)) {
             return date_create($value) ?: null;
-        }
-
-        if (is_int($value)) {
+        } elseif (is_int($value)) {
             return date_create()->setTimestamp($value);
         }
 
@@ -471,11 +486,11 @@ final class EntityHydrator
      */
     private function createDateTimeImmutable($value) : ?DateTimeImmutable
     {
-        if (is_string($value)) {
+        if ($value instanceof DateTimeImmutable) {
+            return $value;
+        } elseif (is_string($value)) {
             return date_create_immutable($value) ?: null;
-        }
-
-        if (is_int($value)) {
+        } elseif (is_int($value)) {
             return date_create_immutable()->setTimestamp($value);
         }
 
@@ -493,9 +508,28 @@ final class EntityHydrator
      */
     private function createDateInterval($value) : ?DateInterval
     {
+        if ($value instanceof DateInterval) {
+            return $value;
+        }
+
+        // <input name="some_date[start]" value="now">
+        // <input name="some_date[end]" value="+1 year">
         if (is_array($value) && isset($value['start'], $value['end'])) {
             $start = $this->createDateTime($value['start']);
             $end = $this->createDateTime($value['end']);
+            if (isset($start, $end)) {
+                return date_diff($start, $end) ?: null;
+            }
+        }
+
+        // <input name="some_date" value="now / +1 year">
+        //
+        // great, whitespaces are ignored:
+        // https://github.com/php/php-src/blob/2bf451b92594a70fe745b9d27783ffe211d7940e/ext/date/lib/parse_date.c#L25124-L25131
+        if (is_string($value) && false !== strpos($value, '/')) {
+            list($start, $end) = explode('/', $value, 2);
+            $start = $this->createDateTime($start);
+            $end = $this->createDateTime($end);
             if (isset($start, $end)) {
                 return date_diff($start, $end) ?: null;
             }
