@@ -121,8 +121,10 @@ final class EntityHydrator
             return;
         }
 
-        $this->annotationReader = /** @scrutinizer ignore-deprecated */ new SimpleAnnotationReader();
-        $this->annotationReader->addNamespace('Sunrise\Bridge\Doctrine\Annotation');
+        if (class_exists(SimpleAnnotationReader::class)) {
+            $this->annotationReader = /** @scrutinizer ignore-deprecated */ new SimpleAnnotationReader();
+            $this->annotationReader->addNamespace('Sunrise\Bridge\Doctrine\Annotation');
+        }
     }
 
     /**
@@ -229,7 +231,6 @@ final class EntityHydrator
 
             if (!$parameter->hasType()) {
                 $setter->invoke($entity, $value);
-
                 continue;
             }
 
@@ -329,6 +330,7 @@ final class EntityHydrator
         $object = $this->resolveAssociation($targetEntity, $value);
         if (isset($object)) {
             $setter->invoke($entity, $object);
+            return;
         }
     }
 
@@ -358,12 +360,6 @@ final class EntityHydrator
             return;
         }
 
-        $object = $this->resolveAssociation($targetEntity, $value);
-        if (isset($object)) {
-            $adder->invoke($entity, $object);
-            return;
-        }
-
         if (Helper::isList($value)) {
             foreach ($value as $item) {
                 $object = $this->resolveAssociation($targetEntity, $item);
@@ -371,6 +367,14 @@ final class EntityHydrator
                     $adder->invoke($entity, $object);
                 }
             }
+
+            return;
+        }
+
+        $object = $this->resolveAssociation($targetEntity, $value);
+        if (isset($object)) {
+            $adder->invoke($entity, $object);
+            return;
         }
     }
 
@@ -605,14 +609,14 @@ final class EntityHydrator
      * From HTML forms it can be submitted like this:
      *
      * ```html
-     * <input name="some_period[start]" value="1970-01-01">
-     * <input name="some_period[end]" value="2038-01-19">
+     * <input name="someInterval[start]" value="1970-01-01">
+     * <input name="someInterval[end]" value="2038-01-19">
      * ```
      *
      * or like this:
      *
      * ```html
-     * <input name="some_period" value="1970-01-01/2038-01-19">
+     * <input name="someInterval" value="1970-01-01 - 2038-01-19">
      * ```
      *
      * @param mixed $value
