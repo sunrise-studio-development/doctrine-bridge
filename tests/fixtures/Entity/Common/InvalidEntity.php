@@ -4,7 +4,10 @@ namespace Sunrise\Bridge\Doctrine\Tests\Fixtures\Entity\Common;
 
 use Doctrine\ORM\Mapping as ORM;
 
-class UnhydrableEntity
+/**
+ * This object cannot be hydrated because its constructor has required parameters.
+ */
+class InvalidEntity
 {
 
     /**

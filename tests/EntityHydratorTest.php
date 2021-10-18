@@ -16,12 +16,13 @@ class EntityHydratorTest extends TestCase
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
 
-        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, []);
-
-        $this->assertInstanceOf(Fixtures\Entity\Common\Post::class, $object);
+        $this->assertInstanceOf(
+            Fixtures\Entity\Common\Post::class,
+            $hydrator->hydrate(Fixtures\Entity\Common\Post::class, [])
+        );
     }
 
-    public function testInitAlreadyInitedObject() : void
+    public function testReinitObject() : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
@@ -31,27 +32,120 @@ class EntityHydratorTest extends TestCase
         $this->assertSame($object, $hydrator->hydrate($object, []));
     }
 
-    public function testInitNonexistentObject() : void
+    /**
+     * @dataProvider invalidObjectProvider
+     */
+    public function testInitInvalidObject($invalidObject) : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
 
         $this->expectException(InvalidArgumentException::class);
 
-        $hydrator->hydrate('NonexistentObject', []);
+        $hydrator->hydrate($invalidObject, []);
     }
 
-    public function testInitUnhydrableObject() : void
+    public function invalidObjectProvider() : array
+    {
+        return [
+            ['NonexistenceClass'],
+            [Fixtures\Entity\Common\InvalidEntity::class],
+            [\stdClass::class],
+            [null],
+            [false],
+            [0],
+            [0.0],
+            [''],
+            [[]],
+            [new \stdClass],
+            [function () {
+            }],
+        ];
+    }
+
+    /**
+     * @dataProvider booleanValueProvider
+     */
+    public function testHydrateBooleanField($falseValue, $trueValue) : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
 
-        $this->expectException(InvalidArgumentException::class);
+        $data = [
+            'isDisabled' => $falseValue,
+            'isVerified' => $trueValue,
+        ];
 
-        $hydrator->hydrate(Fixtures\Entity\Common\UnhydrableEntity::class, []);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertFalse($object->isDisabled());
+        $this->assertTrue($object->isVerified());
     }
 
-    public function testHydrateFields() : void
+    public function booleanValueProvider() : array
+    {
+        return [
+            [false, true],
+            [0, 1],
+            ['0', '1'],
+            ['false', 'true'],
+            ['no', 'yes'],
+            ['off', 'on'],
+        ];
+    }
+
+    /**
+     * @dataProvider integerValueProvider
+     */
+    public function testHydrateIntegerField($value) : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'hits' => $value,
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame(101, $object->getHits());
+    }
+
+    public function integerValueProvider() : array
+    {
+        return [
+            [101],
+            [101.0],
+            ['101'],
+        ];
+    }
+
+    /**
+     * @dataProvider floatValueProvider
+     */
+    public function testHydrateFloatField($value) : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'score' => $value,
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame(25.75, $object->getScore());
+    }
+
+    public function floatValueProvider() : array
+    {
+        return [
+            [25.75],
+            ['25.75'],
+        ];
+    }
+
+    public function testHydrateStringFields() : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
@@ -65,6 +159,115 @@ class EntityHydratorTest extends TestCase
 
         $this->assertSame($data['name'], $object->getName());
         $this->assertSame($data['summary'], $object->getSummary());
+    }
+
+    /**
+     * @dataProvider dataTimeImmutableValueProvider
+     */
+    public function testHydrateDateTimeImmutableField($value) : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'updatedAt' => $value,
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame('2010-01-01', $object->getUpdatedAt()->format('Y-m-d'));
+    }
+
+    public function dataTimeImmutableValueProvider() : array
+    {
+        return [
+            [new \DateTimeImmutable('2010-01-01')],
+            ['2010-01-01'],
+            [1262304000],
+        ];
+    }
+
+    /**
+     * @dataProvider dateTimeValueProvider
+     */
+    public function testHydrateDateTimeField($value) : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'enablesAt' => $value,
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame('2010-01-01', $object->getEnablesAt()->format('Y-m-d'));
+    }
+
+    public function dateTimeValueProvider() : array
+    {
+        return [
+            [new \DateTime('2010-01-01')],
+            ['2010-01-01'],
+            [1262304000],
+        ];
+    }
+
+    /**
+     * @dataProvider dateIntervalValueProvider
+     */
+    public function testHydrateDateIntervalField($value) : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'someInterval' => $value,
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame(68, $object->getSomeInterval()->y);
+    }
+
+    public function dateIntervalValueProvider() : array
+    {
+        return [
+            [\date_diff(\date_create('1970-01-01'), \date_create('2038-01-19'))],
+            [['start' => '1970-01-01', 'end' => '2038-01-19']],
+            [['start' => 0, 'end' => 2147472000]],
+            ['1970-01-01 - 2038-01-19'],
+        ];
+    }
+
+    public function testHydrateUnhydrableField() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'unhydrableValue' => 'some value',
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame('', $object->getUnhydrableValue());
+    }
+
+    public function testHydrateUnhydrableAssociation() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'updatedBy' => [
+                'name' => '28fb2188-01d5-4654-9992-6f0f3b952e93',
+            ],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertNull($object->getUpdatedBy());
     }
 
     public function testHydrateId() : void
@@ -81,7 +284,7 @@ class EntityHydratorTest extends TestCase
         $this->assertNotSame($data['id'], $object->getId());
     }
 
-    public function testHydrateFieldWithoutSetter() : void
+    public function testHydrateUnsetableField() : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
@@ -93,20 +296,6 @@ class EntityHydratorTest extends TestCase
         $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertNotSame($data['createdAt'], $object->getCreatedAt()->format('Y-m-d H:i:s'));
-    }
-
-    public function testHydrateFieldWithInvalidValue() : void
-    {
-        $registry = $this->getEntityManagerRegistry();
-        $hydrator = $registry->getHydrator();
-
-        $data = [
-            'name' => ['value'],
-        ];
-
-        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
-
-        $this->assertSame('', $object->getName());
     }
 
     public function testHydrateOneAssociation() : void
@@ -224,5 +413,66 @@ class EntityHydratorTest extends TestCase
         $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertSame([$tag1, $tag2], $object->getTags()->getValues());
+    }
+
+    public function testHydrateNullableFieldWithNull() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'nullableValue' => null,
+        ];
+
+        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertNull($object->getNullableValue());
+    }
+
+    public function testHydrateUnnullableFieldWithNull() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'unnullableValue' => null,
+        ];
+
+        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertNotNull($object->getUnnullableValue());
+    }
+
+    /**
+     * @dataProvider anyTypesProvider
+     */
+    public function testHydrateUntypedField($value) : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'untypedValue' => $value,
+        ];
+
+        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame($value, $object->getUntypedValue());
+    }
+
+    public function anyTypesProvider() : array
+    {
+        return [
+            [null],
+            [false],
+            [0],
+            [0.0],
+            [''],
+            [[]],
+            [new \stdClass],
+            [function () {
+            }],
+            [\STDIN],
+        ];
     }
 }

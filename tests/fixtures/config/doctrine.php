@@ -29,7 +29,7 @@ $config['bar']['dbal']['connection']['url'] = sprintf(
 //
 // ORM configuration of the bar instance
 //
-$config['bar']['orm']['entity_locations'] = realpath(__DIR__ . '/../Entity/PHP8');
+$config['bar']['orm']['entity_locations'] = realpath(__DIR__ . '/../Entity/PHP80');
 $config['bar']['orm']['proxy_dir'] = sys_get_temp_dir();
 
 return $config;
