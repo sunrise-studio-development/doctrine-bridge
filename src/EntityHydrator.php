@@ -14,8 +14,11 @@ namespace Sunrise\Bridge\Doctrine;
 /**
  * Import classes
  */
+use Doctrine\Common\Annotations\SimpleAnnotationReader;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadataInfo;
+use Doctrine\ORM\Mapping\MappingException;
+use Sunrise\Bridge\Doctrine\Annotation\Unhydrable;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use DateInterval;
 use DateTime;
@@ -24,6 +27,7 @@ use DateTimeInterface;
 use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionMethod;
+use ReflectionProperty;
 use ReflectionType;
 use ReflectionNamedType;
 use ReflectionUnionType;
@@ -59,6 +63,7 @@ use const FILTER_NULL_ON_FAILURE;
 use const FILTER_VALIDATE_BOOLEAN;
 use const FILTER_VALIDATE_FLOAT;
 use const FILTER_VALIDATE_INT;
+use const PHP_MAJOR_VERSION;
 
 /**
  * EntityHydrator
@@ -67,16 +72,57 @@ final class EntityHydrator
 {
 
     /**
+     * 1970-01-01 - 2038-01-19
+     *
+     * @var string
+     */
+    private const STRING_DATE_INTERVAL_SEPARATOR = ' - ';
+
+    /**
      * @var EntityManagerInterface
      */
     private $entityManager;
 
     /**
+     * @var EnglishInflector
+     *
+     * @link https://symfony.com/doc/current/components/string.html#inflector
+     */
+    private $englishInflector;
+
+    /**
+     * @var SimpleAnnotationReader|null
+     */
+    private $annotationReader = null;
+
+    /**
+     * Constructor of the class
+     *
      * @param EntityManagerInterface $entityManager
      */
     public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
+        $this->englishInflector = new EnglishInflector();
+
+        if (PHP_MAJOR_VERSION < 8) {
+            $this->useAnnotations();
+        }
+    }
+
+    /**
+     * Enables support for annotations
+     *
+     * @return void
+     */
+    public function useAnnotations() : void
+    {
+        if (isset($this->annotationReader)) {
+            return;
+        }
+
+        $this->annotationReader = /** @scrutinizer ignore-deprecated */ new SimpleAnnotationReader();
+        $this->annotationReader->addNamespace('Sunrise\Bridge\Doctrine\Annotation');
     }
 
     /**
@@ -93,7 +139,11 @@ final class EntityHydrator
     {
         $entity = $this->initializeEntity($entity);
 
-        $metadata = $this->entityManager->getClassMetadata(get_class($entity));
+        try {
+            $metadata = $this->entityManager->getClassMetadata(get_class($entity));
+        } catch (MappingException $e) {
+            throw new InvalidArgumentException($e->getMessage(), 0, $e);
+        }
 
         $this->hydrateFields($metadata, $entity, $data);
         $this->hydrateAssociations($metadata, $entity, $data);
@@ -125,7 +175,7 @@ final class EntityHydrator
 
         $class = new ReflectionClass($entity);
         $constructor = $class->getConstructor();
-        if (isset($constructor) && 0 < $constructor->getNumberOfRequiredParameters()) {
+        if (isset($constructor) && $constructor->getNumberOfRequiredParameters() > 0) {
             throw new InvalidArgumentException(sprintf(
                 'The entity %s cannot be hydrated because its constructor has required parameters.',
                 $class->getName()
@@ -146,39 +196,64 @@ final class EntityHydrator
      */
     private function hydrateFields(ClassMetadataInfo $metadata, object $entity, array $data) : void
     {
-        foreach ($metadata->fieldMappings as $mapping) {
-            if (!array_key_exists($mapping['fieldName'], $data)) {
+        $class = $metadata->getReflectionClass();
+
+        foreach ($metadata->fieldMappings as $fieldName => $_) {
+            if (!array_key_exists($fieldName, $data)) {
                 continue;
             }
 
-            if ($metadata->isIdentifier($mapping['fieldName'])) {
+            if ($metadata->isIdentifier($fieldName)) {
                 continue;
             }
 
-            $setter = $this->getFieldSetter($metadata->getReflectionClass(), $mapping['fieldName']);
+            $field = $metadata->getReflectionProperty($fieldName);
+            if (!$this->isHydrableField($field)) {
+                continue;
+            }
+
+            $setter = $this->getFieldSetter($class, $field);
             if (null === $setter) {
                 continue;
             }
 
-            $value = $data[$mapping['fieldName']];
-            $param = $setter->getParameters()[0];
-
+            $value = $data[$fieldName];
+            $parameter = $setter->getParameters()[0];
             if (null === $value) {
-                if ($param->allowsNull()) {
+                if ($parameter->allowsNull()) {
                     $setter->invoke($entity, null);
                 }
 
                 continue;
             }
 
-            if ($param->hasType()) {
-                $value = $this->typizeFieldValue($param->getType(), $value);
-                if (null === $value) {
-                    continue;
-                }
+            if (!$parameter->hasType()) {
+                $setter->invoke($entity, $value);
+
+                continue;
             }
 
-            $setter->invoke($entity, $value);
+            $type = $parameter->getType();
+            if ($type instanceof ReflectionNamedType) {
+                $value = $this->typizeFieldValue($type, $value);
+                if (isset($value)) {
+                    $setter->invoke($entity, $value);
+                }
+
+                continue;
+            }
+
+            if ($type instanceof ReflectionUnionType) {
+                foreach ($type->getTypes() as $oneOf) {
+                    $result = $this->typizeFieldValue($oneOf, $value);
+                    if (isset($result)) {
+                        $setter->invoke($entity, $result);
+                        break;
+                    }
+                }
+
+                continue;
+            }
         }
     }
 
@@ -196,54 +271,49 @@ final class EntityHydrator
      */
     private function hydrateAssociations(ClassMetadataInfo $metadata, object $entity, array $data) : void
     {
-        foreach ($metadata->associationMappings as $mapping) {
-            if (!array_key_exists($mapping['fieldName'], $data)) {
+        $class = $metadata->getReflectionClass();
+
+        foreach ($metadata->associationMappings as $fieldName => $mapping) {
+            if (!array_key_exists($fieldName, $data)) {
                 continue;
             }
 
-            if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_ONE, ClassMetadataInfo::MANY_TO_ONE])) {
-                $this->hydrateFieldWithOneAssociation(
-                    $metadata,
-                    $entity,
-                    $mapping['fieldName'],
-                    $mapping['targetEntity'],
-                    $data[$mapping['fieldName']]
-                );
+            $field = $metadata->getReflectionProperty($fieldName);
+            if (!$this->isHydrableField($field)) {
+                continue;
+            }
 
+            $value = $data[$fieldName];
+
+            if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_ONE, ClassMetadataInfo::MANY_TO_ONE])) {
+                $this->hydrateFieldWithOneAssociation($entity, $class, $field, $mapping['targetEntity'], $value);
                 continue;
             }
 
             if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_MANY, ClassMetadataInfo::MANY_TO_MANY])) {
-                $this->hydrateFieldWithManyAssociations(
-                    $metadata,
-                    $entity,
-                    $mapping['fieldName'],
-                    $mapping['targetEntity'],
-                    $data[$mapping['fieldName']]
-                );
-
+                $this->hydrateFieldWithManyAssociations($entity, $class, $field, $mapping['targetEntity'], $value);
                 continue;
             }
         }
     }
 
     /**
-     * @param ClassMetadataInfo $metadata
      * @param object $entity
-     * @param string $fieldName
+     * @param ReflectionClass $class
+     * @param ReflectionProperty $field
      * @param string $targetEntity
      * @param mixed $value
      *
      * @return void
      */
     private function hydrateFieldWithOneAssociation(
-        ClassMetadataInfo $metadata,
         object $entity,
-        string $fieldName,
+        ReflectionClass $class,
+        ReflectionProperty $field,
         string $targetEntity,
         $value
     ) : void {
-        $setter = $this->getFieldSetter($metadata->getReflectionClass(), $fieldName);
+        $setter = $this->getFieldSetter($class, $field);
         if (null === $setter) {
             return;
         }
@@ -263,18 +333,18 @@ final class EntityHydrator
     }
 
     /**
-     * @param ClassMetadataInfo $metadata
      * @param object $entity
-     * @param string $fieldName
+     * @param ReflectionClass $class
+     * @param ReflectionProperty $field
      * @param string $targetEntity
      * @param mixed $value
      *
      * @return void
      */
     private function hydrateFieldWithManyAssociations(
-        ClassMetadataInfo $metadata,
         object $entity,
-        string $fieldName,
+        ReflectionClass $class,
+        ReflectionProperty $field,
         string $targetEntity,
         $value
     ) : void {
@@ -283,7 +353,7 @@ final class EntityHydrator
             return;
         }
 
-        $adder = $this->getFieldAdder($metadata->getReflectionClass(), $fieldName);
+        $adder = $this->getFieldAdder($class, $field);
         if (null === $adder) {
             return;
         }
@@ -324,19 +394,48 @@ final class EntityHydrator
     }
 
     /**
+     * Checks if the given field is hydrable
+     *
+     * @see Unhydrable
+     *
+     * @param ReflectionProperty $field
+     *
+     * @return bool
+     */
+    private function isHydrableField(ReflectionProperty $field) : bool
+    {
+        if (PHP_MAJOR_VERSION >= 8) {
+            $unhydrable = $field->getAttributes(Unhydrable::class)[0] ?? null;
+            if (isset($unhydrable)) {
+                return false;
+            }
+        }
+
+        if (isset($this->annotationReader)) {
+            $unhydrable = $this->annotationReader->getPropertyAnnotation($field, Unhydrable::class);
+            if (isset($unhydrable)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets an adder for the given field
+     *
      * @param ReflectionClass $class
-     * @param string $fieldName
+     * @param ReflectionProperty $field
      *
      * @return ReflectionMethod|null
      */
-    private function getFieldAdder(ReflectionClass $class, string $fieldName) : ?ReflectionMethod
+    private function getFieldAdder(ReflectionClass $class, ReflectionProperty $field) : ?ReflectionMethod
     {
-        $camelizedFieldName = $this->camelizeFieldName($fieldName);
+        $singulars = (array) $this->englishInflector
+            ->singularize($this->camelizeFieldName($field->name));
 
-        $singularFieldNames = (array) (new EnglishInflector)->singularize($camelizedFieldName);
-
-        foreach ($singularFieldNames as $singularFieldName) {
-            $adderName = 'add' . $singularFieldName;
+        foreach ($singulars as $singular) {
+            $adderName = 'add' . $singular;
             if (!$class->hasMethod($adderName)) {
                 continue;
             }
@@ -353,16 +452,16 @@ final class EntityHydrator
     }
 
     /**
+     * Gets a setter for the given field
+     *
      * @param ReflectionClass $class
-     * @param string $fieldName
+     * @param ReflectionProperty $field
      *
      * @return ReflectionMethod|null
      */
-    private function getFieldSetter(ReflectionClass $class, string $fieldName) : ?ReflectionMethod
+    private function getFieldSetter(ReflectionClass $class, ReflectionProperty $field) : ?ReflectionMethod
     {
-        $camelizedFieldName = $this->camelizeFieldName($fieldName);
-
-        $setterName = 'set' . $camelizedFieldName;
+        $setterName = 'set' . $this->camelizeFieldName($field->name);
         if (!$class->hasMethod($setterName)) {
             return null;
         }
@@ -376,6 +475,8 @@ final class EntityHydrator
     }
 
     /**
+     * Converts the given field name to UpperCamelCase
+     *
      * @param string $fieldName
      *
      * @return string
@@ -398,54 +499,53 @@ final class EntityHydrator
      *
      * Returns null if the given value cannot be typized.
      *
-     * @param ReflectionNamedType|ReflectionUnionType $type
+     * @param ReflectionNamedType $type
      * @param bool|int|float|string|array|stdClass $value
      *
      * @return bool|int|float|string|array|stdClass|DateTime|DateTimeImmutable|DateInterval|null
      */
-    private function typizeFieldValue(ReflectionType $type, $value)
+    private function typizeFieldValue(ReflectionNamedType $type, $value)
     {
-        // union type isn't supported...
-        if ($type instanceof ReflectionUnionType) {
-            return null;
-        }
-
-        /** @var ReflectionNamedType $type */
-
         switch ($type->getName()) {
             case 'mixed':
                 return $value;
+
+            // if the value isn't boolean, then we will use filter_var, because it will give us the ability to specify
+            // boolean values as strings. this behavior is great for html forms. details at:
+            // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L273
             case 'bool':
-                // if the value isn't boolean, then we will use filter_var, because it will give us the ability to
-                // specify boolean values as strings. this behavior is great for html forms. details at:
-                //
-                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L273
                 return is_bool($value) ? $value : filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+            // it's senseless to convert the value type if it's not a number, so we will use filter_var to correct
+            // converting the value type to int. also remember that string numbers must be between PHP_INT_MIN and
+            // PHP_INT_MAX, otherwise the result will be null. this behavior is great for html forms. details at:
+            // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L197
+            // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L94
             case 'int':
-                // it's senseless to convert the value type if it's not a number, so we will use filter_var to correct
-                // converting the value type to int. also remember that string numbers must be between PHP_INT_MIN and
-                // PHP_INT_MAX, otherwise the result will be null. this behavior is great for html forms. details at:
-                //
-                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L197
-                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L94
                 return is_int($value) ? $value : filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
+
+            // it's senseless to convert the value type if it's not a number, so we will use filter_var to correct
+            // converting the value type to float. this behavior is great for html forms. details at:
+            // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L342
             case 'float':
-                // it's senseless to convert the value type if it's not a number, so we will use filter_var to correct
-                // converting the value type to float. this behavior is great for html forms. details at:
-                //
-                // https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L342
                 return is_float($value) ? $value : filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+
             case 'string':
                 return is_string($value) ? $value : null;
+
             case 'array':
                 return is_array($value) ? $value : null;
+
             case 'object':
                 return is_object($value) ? $value : null;
+
             case DateTime::class:
             case DateTimeInterface::class:
                 return $this->createDateTime($value);
+
             case DateTimeImmutable::class:
                 return $this->createDateTimeImmutable($value);
+
             case DateInterval::class:
                 return $this->createDateInterval($value);
         }
@@ -502,6 +602,19 @@ final class EntityHydrator
      *
      * Returns null if the object cannot be created.
      *
+     * From HTML forms it can be submitted like this:
+     *
+     * ```html
+     * <input name="some_period[start]" value="1970-01-01">
+     * <input name="some_period[end]" value="2038-01-19">
+     * ```
+     *
+     * or like this:
+     *
+     * ```html
+     * <input name="some_period" value="1970-01-01/2038-01-19">
+     * ```
+     *
      * @param mixed $value
      *
      * @return DateInterval|null
@@ -512,8 +625,6 @@ final class EntityHydrator
             return $value;
         }
 
-        // <input name="some_date[start]" value="now">
-        // <input name="some_date[end]" value="+1 year">
         if (is_array($value) && isset($value['start'], $value['end'])) {
             $start = $this->createDateTime($value['start']);
             $end = $this->createDateTime($value['end']);
@@ -522,12 +633,10 @@ final class EntityHydrator
             }
         }
 
-        // <input name="some_date" value="now / +1 year">
-        //
         // great, whitespaces are ignored:
         // https://github.com/php/php-src/blob/2bf451b92594a70fe745b9d27783ffe211d7940e/ext/date/lib/parse_date.c#L25124-L25131
-        if (is_string($value) && false !== strpos($value, '/')) {
-            list($start, $end) = explode('/', $value, 2);
+        if (is_string($value) && false !== strpos($value, self::STRING_DATE_INTERVAL_SEPARATOR)) {
+            list($start, $end) = explode(self::STRING_DATE_INTERVAL_SEPARATOR, $value, 2);
             $start = $this->createDateTime($start);
             $end = $this->createDateTime($end);
             if (isset($start, $end)) {
