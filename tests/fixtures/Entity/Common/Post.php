@@ -173,6 +173,40 @@ class Post
     private $untypedValue = '';
 
     /**
+     * @ORM\ManyToOne(targetEntity=Category::class)
+     *
+     * @var Category|null
+     */
+    #[ORM\ManyToOne(targetEntity: Category::class)]
+    private $unsetableAssociation = null;
+
+    /**
+     * @ORM\ManyToOne(targetEntity=Category::class)
+     *
+     * @var Category|null
+     */
+    #[ORM\ManyToOne(targetEntity: Category::class)]
+    private $nullableAssociation = null;
+
+    /**
+     * @ORM\ManyToOne(targetEntity=Category::class)
+     *
+     * @var Category|null
+     */
+    #[ORM\ManyToOne(targetEntity: Category::class)]
+    private $unnullableAssociation = null;
+
+    /**
+     * @ORM\ManyToMany(targetEntity=Tag::class)
+     * @ORM\JoinTable(name="post_unaddable_association")
+     *
+     * @var Collection<Tag>
+     */
+    #[ORM\ManyToMany(targetEntity: Tag::class)]
+    #[ORM\JoinTable(name: 'post_unaddable_association')]
+    private $unaddableAssociation;
+
+    /**
      * Constructor of the class
      */
     public function __construct()
@@ -180,6 +214,7 @@ class Post
         $this->id = hash('md5', uniqid(__CLASS__, true));
         $this->tags = new ArrayCollection();
         $this->createdAt = new DateTimeImmutable('now');
+        $this->unaddableAssociation = new ArrayCollection();
     }
 
     public function getId() : string
@@ -272,6 +307,26 @@ class Post
         return $this->untypedValue;
     }
 
+    public function getUnsetableAssociation() : ?Category
+    {
+        return $this->unsetableAssociation;
+    }
+
+    public function getNullableAssociation() : ?Category
+    {
+        return $this->nullableAssociation;
+    }
+
+    public function getUnnullableAssociation() : ?Category
+    {
+        return $this->unnullableAssociation;
+    }
+
+    public function getUnaddableAssociation() : Collection
+    {
+        return $this->unaddableAssociation;
+    }
+
     public function setId(string $id) : void
     {
         $this->id = $id;
@@ -355,5 +410,15 @@ class Post
     public function setUntypedValue($untypedValue) : void
     {
         $this->untypedValue = $untypedValue;
+    }
+
+    public function setNullableAssociation(?Category $nullableAssociation) : void
+    {
+        $this->nullableAssociation = $nullableAssociation;
+    }
+
+    public function setUnnullableAssociation(Category $unnullableAssociation) : void
+    {
+        $this->unnullableAssociation = $unnullableAssociation;
     }
 }

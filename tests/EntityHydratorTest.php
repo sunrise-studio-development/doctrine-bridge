@@ -318,7 +318,27 @@ class EntityHydratorTest extends TestCase
         $this->assertSame($data['category']['summary'], $object->getCategory()->getSummary());
     }
 
-    public function testHydrateManyAssociations() : void
+    public function testHydrateManyAssociationsWithOne() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'tags' => [
+                'name' => 'e4ddb0ae-bb87-424b-a467-3ee4777e9ee6',
+                'summary' => '2219d4b6-0517-4c93-9698-533d16e89269',
+            ],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertCount(1, $object->getTags());
+
+        $this->assertSame($data['tags']['name'], $object->getTags()->offsetGet(0)->getName());
+        $this->assertSame($data['tags']['summary'], $object->getTags()->offsetGet(0)->getSummary());
+    }
+
+    public function testHydrateManyAssociationsWithSeveral() : void
     {
         $registry = $this->getEntityManagerRegistry();
         $hydrator = $registry->getHydrator();
@@ -345,6 +365,34 @@ class EntityHydratorTest extends TestCase
 
         $this->assertSame($data['tags'][1]['name'], $object->getTags()->offsetGet(1)->getName());
         $this->assertSame($data['tags'][1]['summary'], $object->getTags()->offsetGet(1)->getSummary());
+    }
+
+    public function testHydrateManyAssociationsWithNull() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'tags' => null,
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertEmpty($object->getTags());
+    }
+
+    public function testHydrateManyAssociationsWithNulls() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'tags' => [null],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertEmpty($object->getTags());
     }
 
     public function testHydrateOneAssociationUsingId() : void
@@ -424,7 +472,7 @@ class EntityHydratorTest extends TestCase
             'nullableValue' => null,
         ];
 
-        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertNull($object->getNullableValue());
     }
@@ -438,7 +486,7 @@ class EntityHydratorTest extends TestCase
             'unnullableValue' => null,
         ];
 
-        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertNotNull($object->getUnnullableValue());
     }
@@ -455,7 +503,7 @@ class EntityHydratorTest extends TestCase
             'untypedValue' => $value,
         ];
 
-        $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertSame($value, $object->getUntypedValue());
     }
@@ -474,5 +522,75 @@ class EntityHydratorTest extends TestCase
             }],
             [\STDIN],
         ];
+    }
+
+    public function testHydrateUnsetableAssociation() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'unsetableAssociation' => [
+                'name' => '0b935aa7-676e-4e32-8e90-46c99b5630bf',
+                'summary' => '55b87ed8-c471-4ff4-a50d-bbdf205b0bc2',
+            ],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertNull($object->getUnsetableAssociation());
+    }
+
+    public function testHydrateNullableAssociation() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'nullableAssociation' => null,
+        ];
+
+        $post = new Fixtures\Entity\Common\Post();
+        $category = new Fixtures\Entity\Common\Category();
+        $post->setNullableAssociation($category);
+
+        $hydrator->hydrate($post, $data);
+
+        $this->assertNull($post->getNullableAssociation());
+    }
+
+    public function testHydrateUnnullableAssociation() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'unnullableAssociation' => null,
+        ];
+
+        $post = new Fixtures\Entity\Common\Post();
+        $category = new Fixtures\Entity\Common\Category();
+        $post->setUnnullableAssociation($category);
+
+        $hydrator->hydrate($post, $data);
+
+        $this->assertNotNull($post->getUnnullableAssociation());
+    }
+
+    public function testHydrateUnaddableAssociation() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'unaddableAssociation' => [
+                'name' => '1d0570e7-5f9c-4389-9ed5-a767ba9e15e2',
+                'summary' => '40a320a1-5455-4d62-8fc5-283ca71a45fe',
+            ],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertCount(0, $object->getUnaddableAssociation());
     }
 }
