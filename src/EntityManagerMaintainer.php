@@ -14,6 +14,7 @@ namespace Sunrise\Bridge\Doctrine;
 /**
  * Import classes
  */
+use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry as EntityManagerRegistryInterface;
 
 /**
@@ -69,5 +70,34 @@ final class EntityManagerMaintainer
         foreach ($this->entityManagerRegistry->getManagers() as $name => $manager) {
             $manager->isOpen() or $this->entityManagerRegistry->resetManager($name);
         }
+    }
+
+    /**
+     * Re-creates all database schemas
+     *
+     * @return void
+     */
+    public function recreateAllSchemas() : void
+    {
+        foreach ($this->entityManagerRegistry->getManagerNames() as $name) {
+            $this->recreateSchema($name);
+        }
+    }
+
+    /**
+     * Re-creates the manager's database schema
+     *
+     * @param string|null $managerName
+     *
+     * @return void
+     */
+    public function recreateSchema(?string $managerName = null) : void
+    {
+        $manager = $this->entityManagerRegistry->getManager($managerName);
+        $metadata = $manager->getMetadataFactory()->getAllMetadata();
+
+        $schemaTool = new SchemaTool($manager);
+        $schemaTool->dropSchema($metadata);
+        $schemaTool->createSchema($metadata);
     }
 }

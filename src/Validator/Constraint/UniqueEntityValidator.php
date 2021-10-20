@@ -23,11 +23,8 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 /**
  * Import functions
  */
-use function count;
 use function get_class;
-use function is_array;
-use function is_string;
-use function reset;
+use function is_object;
 use function sprintf;
 
 /**
@@ -50,18 +47,11 @@ class UniqueEntityValidator extends ConstraintValidator
     }
 
     /**
-     * Validates the given entity
-     *
-     * @param object $entity
-     * @param Constraint $constraint
-     *
-     * @throws ConstraintDefinitionException
-     * @throws UnexpectedTypeException
-     *
-     * @return void
+     * {@inheritdoc}
      */
-    public function validate(object $entity, Constraint $constraint)
+    public function validate($entity, Constraint $constraint)
     {
+        $this->validateEntity($entity);
         $this->validateConstraint($constraint);
 
         $entityName = get_class($entity);
@@ -70,8 +60,6 @@ class UniqueEntityValidator extends ConstraintValidator
             $this->entityManagerRegistry->getManager($constraint->em) :
             $this->entityManagerRegistry->getManagerForClass($entityName);
 
-        // The "getManagerForClass" method may return null,
-        // but the "getManager" method should throw an exception...
         if (null === $entityManager) {
             throw new ConstraintDefinitionException(sprintf(
                 'Unable to get Entity Manager for the entity "%s".',
@@ -97,10 +85,6 @@ class UniqueEntityValidator extends ConstraintValidator
                 return;
             }
 
-            if ($entityMetadata->hasAssociation($fieldName)) {
-                $entityManager->initializeObject($fieldValue);
-            }
-
             $criteria[$fieldName] = $fieldValue;
         }
 
@@ -112,20 +96,17 @@ class UniqueEntityValidator extends ConstraintValidator
             $foundEntities[] = $foundEntity;
         }
 
-        if (empty($foundEntities)) {
+        if (!isset($foundEntities[0]) || (!isset($foundEntities[1]) && $entity === $foundEntities[0])) {
             return;
         }
 
-        if (1 === count($foundEntities) && $entity === $foundEntities[0]) {
-            return;
-        }
-
-        $atPath = $constraint->atPath ?? reset($constraint->fields);
-        $invalidValue = $criteria[$atPath] ?? reset($criteria);
+        $atPath = $constraint->atPath ?? $constraint->fields[0];
+        $invalidValue = $criteria[$atPath] ?? $criteria[$constraint->fields[0]];
+        $formattedInvalidValue = $this->formatValue($invalidValue, self::PRETTY_DATE);
 
         $this->context->buildViolation($constraint->message)
             ->atPath($atPath)
-            ->setParameter('{{ value }}', $this->formatValue($invalidValue, self::PRETTY_DATE))
+            ->setParameter('{{ value }}', $formattedInvalidValue)
             ->setInvalidValue($invalidValue)
             ->setCode(UniqueEntity::NOT_UNIQUE_ERROR)
             ->setCause($result)
@@ -135,37 +116,37 @@ class UniqueEntityValidator extends ConstraintValidator
     /**
      * Validates the given constraint
      *
-     * @param Constraint $constraint
+     * @param mixed $constraint
+     *
+     * @return void
      *
      * @throws ConstraintDefinitionException
      * @throws UnexpectedTypeException
-     *
-     * @return void
      */
-    private function validateConstraint(Constraint $constraint) : void
+    private function validateConstraint($constraint) : void
     {
         if (!($constraint instanceof UniqueEntity)) {
             throw new UnexpectedTypeException($constraint, UniqueEntity::class);
         }
 
-        if (null !== $constraint->em && !is_string($constraint->em)) {
-            throw new UnexpectedTypeException($constraint->em, 'string');
-        }
-
-        if (!is_array($constraint->fields)) {
-            throw new UnexpectedTypeException($constraint->fields, 'array');
-        }
-
-        if (!is_string($constraint->message)) {
-            throw new UnexpectedTypeException($constraint->message, 'string');
-        }
-
-        if (null !== $constraint->atPath && !is_string($constraint->atPath)) {
-            throw new UnexpectedTypeException($constraint->atPath, 'string');
-        }
-
         if (empty($constraint->fields)) {
             throw new ConstraintDefinitionException('No fields specified.');
+        }
+    }
+
+    /**
+     * Validates the given entity
+     *
+     * @param mixed $entity
+     *
+     * @return void
+     *
+     * @throws UnexpectedTypeException
+     */
+    private function validateEntity($entity) : void
+    {
+        if (!is_object($entity)) {
+            throw new UnexpectedTypeException($entity, 'object');
         }
     }
 }

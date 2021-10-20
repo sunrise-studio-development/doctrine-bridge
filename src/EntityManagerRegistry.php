@@ -27,6 +27,7 @@ use InvalidArgumentException;
 /**
  * Import functions
  */
+use function array_merge;
 use function key;
 use function reset;
 use function sprintf;
@@ -48,6 +49,11 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     private $entityManagerFactory;
 
     /**
+     * @var EntityManagerMaintainer
+     */
+    private $entityManagerMaintainer;
+
+    /**
      * @var array<string, mixed>
      */
     private $serviceParameters = [];
@@ -63,6 +69,11 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     private $services = [];
 
     /**
+     * @var array<string, mixed>
+     */
+    private $migrationsParameters = [];
+
+    /**
      * Initializes the registry
      *
      * @param array<string, mixed> $configuration
@@ -72,6 +83,7 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     {
         $this->connectionFactory = new ConnectionFactory();
         $this->entityManagerFactory = new EntityManagerFactory();
+        $this->entityManagerMaintainer = new EntityManagerMaintainer($this);
 
         $connectionNames = [];
         $entityManagerNames = [];
@@ -80,17 +92,19 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
             $serviceParameters = (array) $serviceParameters;
 
             if (isset($serviceParameters['dbal'])) {
-                $connectionName = $serviceName . '.conn';
-                $connectionNames[$serviceName] = $connectionName;
-                $this->serviceParameters[$connectionName] = (array) $serviceParameters['dbal'];
-                $this->serviceFactories[$connectionName] = $this->createConnectionLazyServiceFactory();
+                $connectionNames[$serviceName] = $serviceName . '.conn';
+                $this->serviceParameters[$connectionNames[$serviceName]] = (array) $serviceParameters['dbal'];
+                $this->serviceFactories[$connectionNames[$serviceName]] = $this->createConnectionLazyServiceFactory();
             }
 
             if (isset($serviceParameters['orm'])) {
-                $entityManagerName = $serviceName;
-                $entityManagerNames[$serviceName] = $entityManagerName;
-                $this->serviceParameters[$entityManagerName] = (array) $serviceParameters['orm'];
-                $this->serviceFactories[$entityManagerName] = $this->createEntityManagerLazyServiceFactory();
+                $entityManagerNames[$serviceName] = $serviceName;
+                $this->serviceParameters[$entityManagerNames[$serviceName]] = (array) $serviceParameters['orm'];
+                $this->serviceFactories[$entityManagerNames[$serviceName]] = $this->createManagerLazyServiceFactory();
+            }
+
+            if (isset($serviceParameters['migrations'])) {
+                $this->migrationsParameters = (array) $serviceParameters['migrations'];
             }
 
             if (isset($serviceParameters['types'])) {
@@ -116,6 +130,20 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     }
 
     /**
+     * @return \Symfony\Component\Console\Command\Command[]
+     */
+    public function getCommands() : array
+    {
+        $provider = new CommandProvider($this);
+
+        return array_merge(
+            $provider->getDbalCommands(),
+            $provider->getOrmCommands(),
+            $provider->getMigrationsCommands($this->migrationsParameters)
+        );
+    }
+
+    /**
      * @param string|null $managerName
      *
      * @return EntityHydrator
@@ -130,7 +158,7 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
      */
     public function getMaintainer() : EntityManagerMaintainer
     {
-        return new EntityManagerMaintainer($this);
+        return $this->entityManagerMaintainer;
     }
 
     /**
@@ -195,7 +223,7 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     /**
      * @return Closure
      */
-    private function createEntityManagerLazyServiceFactory() : Closure
+    private function createManagerLazyServiceFactory() : Closure
     {
         return static function (self $self, string $serviceName) : EntityManagerInterface {
             return $self->entityManagerFactory->createEntityManager(

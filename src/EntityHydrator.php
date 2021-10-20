@@ -106,7 +106,9 @@ final class EntityHydrator
         $this->englishInflector = new EnglishInflector();
 
         if (PHP_MAJOR_VERSION < 8) {
+            // @codeCoverageIgnoreStart
             $this->useAnnotations();
+            // @codeCoverageIgnoreEnd
         }
     }
 
@@ -219,24 +221,23 @@ final class EntityHydrator
                 continue;
             }
 
-            $value = $data[$fieldName];
             $parameter = $setter->getParameters()[0];
-            if (null === $value) {
-                if ($parameter->allowsNull()) {
+            if (!$parameter->hasType()) {
+                $setter->invoke($entity, $data[$fieldName]);
+                continue;
+            }
+
+            $type = $parameter->getType();
+            if (null === $data[$fieldName]) {
+                if ($type->allowsNull()) {
                     $setter->invoke($entity, null);
                 }
 
                 continue;
             }
 
-            if (!$parameter->hasType()) {
-                $setter->invoke($entity, $value);
-                continue;
-            }
-
-            $type = $parameter->getType();
             if ($type instanceof ReflectionNamedType) {
-                $value = $this->typizeFieldValue($type, $value);
+                $value = $this->typizeFieldValue($type, $data[$fieldName]);
                 if (isset($value)) {
                     $setter->invoke($entity, $value);
                 }
@@ -245,10 +246,10 @@ final class EntityHydrator
             }
 
             if ($type instanceof ReflectionUnionType) {
-                foreach ($type->getTypes() as $oneOf) {
-                    $result = $this->typizeFieldValue($oneOf, $value);
-                    if (isset($result)) {
-                        $setter->invoke($entity, $result);
+                foreach ($type->getTypes() as $subtype) {
+                    $value = $this->typizeFieldValue($subtype, $data[$fieldName]);
+                    if (isset($value)) {
+                        $setter->invoke($entity, $value);
                         break;
                     }
                 }
@@ -284,15 +285,27 @@ final class EntityHydrator
                 continue;
             }
 
-            $value = $data[$fieldName];
-
             if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_ONE, ClassMetadataInfo::MANY_TO_ONE])) {
-                $this->hydrateFieldWithOneAssociation($entity, $class, $field, $mapping['targetEntity'], $value);
+                $this->hydrateFieldWithOneAssociation(
+                    $entity,
+                    $class,
+                    $field,
+                    $mapping['targetEntity'],
+                    $data[$fieldName]
+                );
+
                 continue;
             }
 
             if (in_array($mapping['type'], [ClassMetadataInfo::ONE_TO_MANY, ClassMetadataInfo::MANY_TO_MANY])) {
-                $this->hydrateFieldWithManyAssociations($entity, $class, $field, $mapping['targetEntity'], $value);
+                $this->hydrateFieldWithManyAssociations(
+                    $entity,
+                    $class,
+                    $field,
+                    $mapping['targetEntity'],
+                    $data[$fieldName]
+                );
+
                 continue;
             }
         }
@@ -330,7 +343,6 @@ final class EntityHydrator
         $object = $this->resolveAssociation($targetEntity, $value);
         if (isset($object)) {
             $setter->invoke($entity, $object);
-            return;
         }
     }
 
@@ -367,14 +379,6 @@ final class EntityHydrator
                     $adder->invoke($entity, $object);
                 }
             }
-
-            return;
-        }
-
-        $object = $this->resolveAssociation($targetEntity, $value);
-        if (isset($object)) {
-            $adder->invoke($entity, $object);
-            return;
         }
     }
 
@@ -390,7 +394,7 @@ final class EntityHydrator
             return $this->entityManager->getReference($targetEntity, $value);
         }
 
-        if (Helper::isDict($value)) {
+        if (is_array($value)) {
             return $this->hydrate($targetEntity, $value);
         }
 
@@ -399,8 +403,6 @@ final class EntityHydrator
 
     /**
      * Checks if the given field is hydrable
-     *
-     * @see Unhydrable
      *
      * @param ReflectionProperty $field
      *

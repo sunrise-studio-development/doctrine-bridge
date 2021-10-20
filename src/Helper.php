@@ -57,16 +57,6 @@ final class Helper
     }
 
     /**
-     * @param array $array
-     *
-     * @return bool
-     */
-    public static function isDict($array) : bool
-    {
-        return is_array($array) && !self::isList($array);
-    }
-
-    /**
      * @param DbalConfiguration|OrmConfiguration $configuration
      * @param Cache|CacheItemPoolInterface $cache
      * @param string $type
@@ -79,11 +69,13 @@ final class Helper
         $oldSetter = 'set' . $type . 'Impl';
 
         if ($cache instanceof Cache) {
+            // @codeCoverageIgnoreStart
             if (method_exists($configuration, $newSetter)) {
                 $configuration->{$newSetter}(CacheAdapter::wrap($cache));
             } else {
                 $configuration->{$oldSetter}($cache);
             }
+            // @codeCoverageIgnoreStop
         } elseif ($cache instanceof CacheItemPoolInterface) {
             if (method_exists($configuration, $newSetter)) {
                 $configuration->{$newSetter}($cache);

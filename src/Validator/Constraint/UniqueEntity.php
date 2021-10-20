@@ -25,10 +25,13 @@ use Symfony\Component\Validator\Constraint;
  * @NamedArgumentConstructor
  *
  * @Attributes({
- *   @Attribute("fields", type="array<string>", required=true),
+ *   @Attribute("fields",  type="array<string>", required=true),
  *   @Attribute("message", type="string"),
- *   @Attribute("atPath", type="string"),
- *   @Attribute("em", type="string"),
+ *   @Attribute("atPath",  type="string"),
+ *   @Attribute("em",      type="string"),
+ *   @Attribute("options", type="mixed"),
+ *   @Attribute("groups",  type="array<string>"),
+ *   @Attribute("payload", type="mixed"),
  * })
  */
 #[Attribute(Attribute::TARGET_CLASS|Attribute::IS_REPEATABLE)]
@@ -41,6 +44,11 @@ class UniqueEntity extends Constraint
     public const NOT_UNIQUE_ERROR = 'd3cf3b2e-f934-422e-ae60-b4eca745aa33';
 
     /**
+     * @var string
+     */
+    public const DEFAULT_ERROR_MESSAGE = 'The value {{ value }} is not unique.';
+
+    /**
      * @var string[]
      */
     public $fields;
@@ -48,7 +56,7 @@ class UniqueEntity extends Constraint
     /**
      * @var string
      */
-    public $message = 'The value {{ value }} is not unique.';
+    public $message;
 
     /**
      * @var string|null
@@ -61,25 +69,32 @@ class UniqueEntity extends Constraint
     public $em = null;
 
     /**
-     * @param string[] $fields
-     * @param string|null $message
-     * @param string|null $atPath
-     * @param string|null $em
+     * Constructor of the class
+     *
+     * @param  string[]       $fields
+     * @param  string|null    $message
+     * @param  string|null    $atPath
+     * @param  string|null    $em
+     * @param  mixed          $options
+     * @param  string[]|null  $groups
+     * @param  mixed          $payload
      */
     public function __construct(
         array $fields,
         ?string $message = null,
         ?string $atPath = null,
-        ?stirng $em = null
+        ?string $em = null,
+        $options = null,
+        ?array $groups = null,
+        $payload = null
     ) {
-        if (null === $message) {
-            $message = $this->message;
-        }
+        $options['fields'] = $fields; // will be setted from the parent constructor.
 
-        $this->fields = $fields;
-        $this->message = $message;
+        $this->message = $message ?? self::DEFAULT_ERROR_MESSAGE;
         $this->atPath = $atPath;
         $this->em = $em;
+
+        parent::__construct($options, $groups, $payload);
     }
 
     /**
