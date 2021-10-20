@@ -132,7 +132,7 @@ class Post {
         // some code
     }
 
-    // set + name (field name)
+    // set + category (field name)
     public function setCategory(Category $value) {
         // some code...
     }
