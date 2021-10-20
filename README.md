@@ -1,4 +1,4 @@
-## Doctrine Bridge for PHP 7.2+ (incl. PHP 8) based on PHP-DI
+# Doctrine Bridge for PHP 7.2+ (incl. PHP 8)
 
 [![Build Status](https://circleci.com/gh/sunrise-php/doctrine-bridge.svg?style=shield)](https://circleci.com/gh/sunrise-php/doctrine-bridge)
 [![Code Coverage](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/sunrise-php/doctrine-bridge/?branch=master)
@@ -12,194 +12,273 @@
 ## Installation
 
 ```bash
-composer require 'sunrise/doctrine-bridge:^1.19'
+composer require 'sunrise/doctrine-bridge:^2.0'
 ```
 
-## Examples of using
-
-The examples use [PHP-DI](http://php-di.org/)
-
-### Doctrine Manager Registry
-
-##### The DI definitions
+## Entity Manager Registry
 
 ```php
-declare(strict_types=1);
+use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 
-use Arus\Doctrine\Bridge\ManagerRegistry;
-use Doctrine\Common\Cache\ArrayCache;
-
-use function DI\autowire;
-use function DI\create;
-use function DI\env;
-use function DI\get;
-use function DI\string;
-
-return [
-    'doctrine' => autowire(ManagerRegistry::class),
-
-    'doctrine.configuration' => [
-        'default' => [
-            'connection' => get('doctrine.configuration.default.connection'),
-            'metadata_sources' => get('doctrine.configuration.default.metadata_sources'),
-            'metadata_cache' => get('doctrine.configuration.default.metadata_cache'),
-            'query_cache' => get('doctrine.configuration.default.query_cache'),
-            'result_cache' => get('doctrine.configuration.default.result_cache'),
-            'proxy_dir' => get('doctrine.configuration.default.proxy_dir'),
-            'proxy_namespace' => get('doctrine.configuration.default.proxy_namespace'),
-            'proxy_auto_generate' => get('doctrine.configuration.default.proxy_auto_generate'),
-            'sql_logger' => get('doctrine.configuration.default.sql_logger'),
+// Minimal configuration (see below for details)
+$configuration = [
+    'master' => [
+        'dbal' => [
+            'connection' => [
+                'url' => 'sqlite:///{app.root}/master.sqlite',
+            ],
+        ],
+        'orm' => [
+            'entity_locations' => [
+                '{app.root}/Entity',
+            ],
+            'metadata_driver' => 'annotations',
+            'proxy_dir' => '{app.root}/var/cache/doctrine',
+        ],
+        'migrations' => [
+            'migrations_paths' => [
+                'App\Migrations' => '{app.root}/resources/migrations',
+            ],
+        ],
+        'types' => [
         ],
     ],
-
-    'doctrine.configuration.default.connection' => [
-        'url' => env('DATABASE_URL', 'mysql://user:password@127.0.0.1:3306/acme'),
-    ],
-
-    'doctrine.configuration.default.metadata_sources' => [string('{app.root}/src/Entity')],
-    'doctrine.configuration.default.metadata_cache' => get('doctrine.configuration.default.default_cache'),
-    'doctrine.configuration.default.query_cache' => get('doctrine.configuration.default.default_cache'),
-    'doctrine.configuration.default.result_cache' => get('doctrine.configuration.default.default_cache'),
-    'doctrine.configuration.default.default_cache' => create(ArrayCache::class),
-    'doctrine.configuration.default.proxy_dir' => string('{app.root}/database/proxies'),
-    'doctrine.configuration.default.proxy_namespace' => 'DoctrineProxies',
-    'doctrine.configuration.default.proxy_auto_generate' => true,
-    'doctrine.configuration.default.sql_logger' => null,
 ];
+
+$doctrine = new EntityManagerRegistry($configuration, $registryName = 'ORM');
 ```
 
-### Doctrine Migrations
+### Configuration
 
-##### The DI definitions
+#### Minimal configuration
 
 ```php
-declare(strict_types=1);
 
-use function DI\get;
-use function DI\string;
-
-return [
-    'migrations.configuration' => [
-        'name' => get('migrations.configuration.name'),
-        'table_name' => get('migrations.configuration.table_name'),
-        'column_name' => get('migrations.configuration.column_name'),
-        'column_length' => get('migrations.configuration.column_length'),
-        'executed_at_column_name' => get('migrations.configuration.executed_at_column_name'),
-        'directory' => get('migrations.configuration.directory'),
-        'namespace' => get('migrations.configuration.namespace'),
-        'organize_by_year' => get('migrations.configuration.organize_by_year'),
-        'organize_by_year_and_month' => get('migrations.configuration.organize_by_year_and_month'),
-        'custom_template' => get('migrations.configuration.custom_template'),
-        'is_dry_run' => get('migrations.configuration.is_dry_run'),
-        'all_or_nothing' => get('migrations.configuration.all_or_nothing'),
-        'check_database_platform' => get('migrations.configuration.check_database_platform'),
-    ],
-
-    'migrations.configuration.name' => null,
-    'migrations.configuration.table_name' => null,
-    'migrations.configuration.column_name' => null,
-    'migrations.configuration.column_length' => null,
-    'migrations.configuration.executed_at_column_name' => null,
-    'migrations.configuration.directory' => string('{app.root}/database/migrations'),
-    'migrations.configuration.namespace' => 'DoctrineMigrations',
-    'migrations.configuration.organize_by_year' => null,
-    'migrations.configuration.organize_by_year_and_month' => null,
-    'migrations.configuration.custom_template' => null,
-    'migrations.configuration.is_dry_run' => null,
-    'migrations.configuration.all_or_nothing' => null,
-    'migrations.configuration.check_database_platform' => null,
-];
 ```
 
-### Doctrine Commands Provider
+#### DBAL configuration
 
-##### The DI definitions
+| **Key**              | **Required** | **Data type**                           | **Default value** | **Description** |
+|----------------------|--------------|-----------------------------------------|-------------------|-----------------|
+| connection           | Yes          | array                                   | true              |                 |
+| auto_commit          | No           | bool                                    |                   |                 |
+| event_manager        | No           | \Doctrine\Common\EventManager           |                   |                 |
+| middlewares          | No           | array<\Doctrine\DBAL\Driver\Middleware> |                   |                 |
+| result_cache         | No           | \Psr\Cache\CacheItemPoolInterface       |                   |                 |
+| schema_assets_filter | No           | callable                                |                   |                 |
+| sql_logger           | No           | \Doctrine\DBAL\Logging\SQLLogger        |                   |                 |
 
-```php
-declare(strict_types=1);
+#### ORM configuration
 
-use Arus\Doctrine\Bridge\CommandsProvider;
+| **Key**                          | **Required** | **Data type**                                              | **Default value**                           | **Description** |
+|----------------------------------|--------------|------------------------------------------------------------|---------------------------------------------|-----------------|
+| entity_locations                 | Yes          | array                                                      |                                             |                 |
+| metadata_driver                  | Yes          | string\|\Doctrine\Persistence\Mapping\Driver\MappingDriver | PHP 7: "annotations"; PHP 8: "attributes"   |                 |
+| proxy_dir                        | Yes          | string                                                     |                                             |                 |
+| class_metadata_factory_name      |              | class-string                                               |                                             |                 |
+| custom_datetime_functions        |              | array                                                      |                                             |                 |
+| custom_hydration_modes           |              | array                                                      |                                             |                 |
+| custom_numeric_functions         |              | array                                                      |                                             |                 |
+| custom_string_functions          |              | array                                                      |                                             |                 |
+| default_query_hints              |              | array                                                      |                                             |                 |
+| default_repository_class_name    |              | class-string                                               |                                             |                 |
+| entity_listener_resolver         |              | \Doctrine\ORM\Mapping\EntityListenerResolver               |                                             |                 |
+| entity_namespaces                |              | array                                                      |                                             |                 |
+| naming_strategy                  |              | \Doctrine\ORM\Mapping\NamingStrategy                       |                                             |                 |
+| proxy_auto_generate              |              | bool                                                       | true                                        |                 |
+| proxy_namespace                  |              | string                                                     |                                             |                 |
+| quote_strategy                   |              | \Doctrine\ORM\Mapping\QuoteStrategy                        |                                             |                 |
+| repository_factory               |              | \Doctrine\ORM\Repository\RepositoryFactory                 |                                             |                 |
+| second_level_cache_configuration |              | \Doctrine\ORM\Cache\CacheConfiguration                     |                                             |                 |
+| second_level_cache_enabled       |              | bool                                                       |                                             |                 |
+| hydration_cache                  |              | \Psr\Cache\CacheItemPoolInterface                          |                                             |                 |
+| metadata_cache                   |              | \Psr\Cache\CacheItemPoolInterface                          |                                             |                 |
+| query_cache                      |              | \Psr\Cache\CacheItemPoolInterface                          |                                             |                 |
 
-use function DI\decorate;
+#### Migrations configuration
 
-return [
-    'commands' => decorate(function ($previous, $container) {
-        $provider = new CommandsProvider($container);
+More details at: [Official Documentation](https://www.doctrine-project.org/projects/doctrine-migrations/en/3.2/reference/configuration.html)
 
-        return array_merge($previous, $provider->getCommands());
-    }),
-];
-```
+## Hydrator
 
-##### or you can get all the commands through the manager
-
-```php
-$application->addCommands(
-    $container->get('doctrine')->getCommands()
-);
-```
-
-### Unique Entity Validator
-
-##### The DI definitions
-
-```php
-declare(strict_types=1);
-
-use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
-use Symfony\Component\Validator\Validation;
-
-use function DI\factory;
-
-return [
-    'validator' => factory(function ($container) {
-        return Validation::createValidatorBuilder()
-            ->enableAnnotationMapping()
-            ->setConstraintValidatorFactory(
-                new ContainerConstraintValidatorFactory($container)
-            )
-        ->getValidator();
-    }),
-];
-```
-
-##### Usage example
+The hydrator NEVER affects properties, it only calls setters and adders.
 
 ```php
-declare(strict_types=1);
+use Doctrine\ORM\Mapping as ORM;
+use Sunrise\Bridge\Doctrine\Annotation\Unhydrable;
 
-namespace App\Entity;
+#[Entity]
+class Post {
 
-/**
- * Import classes
- */
-use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
+    #[ORM\Id]
+    #[ORM\Column(type: 'string')]
+    private $id;
 
-/**
- * @UniqueEntity({"foo"})
- *
- * @UniqueEntity({"bar", "baz"})
- *
- * @UniqueEntity({"qux"}, atPath="customPropertyPath")
- *
- * @UniqueEntity({"quux"}, message="The value {{ value }} already exists!")
- */
-class Entry
-{
-    // some code...
+    #[ORM\Column(type: 'string')]
+    private $name;
+
+    #[ORM\ManyToOne(targetEntity: Category::class)]
+    private $category;
+
+    #[ORM\ManyToMany(targetEntity: Tag::class)]
+    private $tags;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[Unhydrable]
+    private $updatedBy
+
+    // set + name (field name)
+    public function setName(string $value) {
+        // some code
+    }
+
+    // set + category (field name)
+    public function setCategory(Category $value) {
+        // some code...
+    }
+
+    // add + tag (singular field name)
+    public function addTag(Tag $tag) {
+        // some code...
+    }
+
+    // the setter will not be called because its property was marked as unhydrable
+    public function setUpdatedBy(User $user) {
+        // some code
+    }
 }
 ```
 
-### Doctrine Array Hydrator
-
 ```php
-$hydrator = $container->get('doctrine')->getHydrator();
+$data = [
+    'name' => 'New post',
+    'category' => [
+        'name' => 'New category'
+    ],
+    'tags' => [
+        [
+            'name' => 'New tag 1',
+        ],
+        [
+            'name' => 'New tag 2',
+        ],
+    ],
+];
 
-$hydrator->hydrate(Entity::class, [
-    'name' => 'foo bar',
-]);
+// or
+
+$data = [
+    'name' => 'New post',
+    'category' => 1, // existing category ID
+    'tags' => [1, 2], // existing tag IDs
+];
+
+$hydrator = $doctrine->getHydrator($managerName = null);
+
+$someEntity = $hydrator->hydrate(Post::class, $data);
 ```
 
-Based on:
+## Maintainer
 
-* https://github.com/pmill/doctrine-array-hydrator
+```php
+$maintainer = $doctrine->getMaintainer();
+
+// closes all active connections
+$maintainer->closeAllConnections();
+
+// clears all managers
+$maintainer->clearAllManagers();
+
+// reopens all closed managers
+$maintainer->reopenAllManagers();
+
+// recreates all schemas
+$maintainer->recreateAllSchemas();
+
+// recreates the specified schema
+$maintainer->recreateSchema($managerName = null);
+```
+
+## CLI commands
+
+```php
+$application->addCommands(
+    $doctrine->getCommands()
+);
+```
+
+## PSR-3 logger
+
+```php
+use Sunrise\Bridge\Doctrine\Logger\SqlLogger;
+
+$sqlLogger = new SqlLogger($psrLogger);
+```
+
+## Unique Entity Validator
+
+```php
+use Sunrise\Bridge\Doctrine\Validator\Constraint\UniqueEntity;
+
+#[UniqueEntity(['field'])]
+class SomeEntity {
+}
+```
+
+## CLI
+
+```php
+declare(strict_types=1);
+
+use Symfony\Component\Console\Application;
+
+require __DIR__ . '/../config/bootstrap.php';
+
+$container = require __DIR__ . '/../config/container.php';
+
+$application = new Application(
+    $container->get('app.name'),
+    $container->get('app.version')
+);
+
+$application->addCommands(
+    $container->get('commands')
+);
+
+$application->addCommands(
+    $container->get('doctrine')->getCommands()
+);
+
+$application->run();
+```
+
+## PHP-DI definitions
+
+### Validator
+
+```php
+declare(strict_types=1);
+
+use DI\Container;
+use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
+use Symfony\Component\Validator\Validation;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+
+return [
+
+    /**
+     * The application validator
+     *
+     * @link https://symfony.com/doc/current/validation.html
+     *
+     * @var ValidatorInterface
+     */
+    ValidatorInterface::class => function (Container $container) : ValidatorInterface {
+        return Validation::createValidatorBuilder()
+            ->enableAnnotationMapping(true)
+            ->addDefaultDoctrineAnnotationReader()
+            ->setConstraintValidatorFactory(new ContainerConstraintValidatorFactory($container))
+            ->getValidator();
+    },
+];
+```

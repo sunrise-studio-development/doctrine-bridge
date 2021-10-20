@@ -1,469 +1,188 @@
-<?php declare(strict_types=1);
+<?php
 
-namespace Arus\Doctrine\Bridge\Tests\Validator\Constraint;
+declare(strict_types=1);
 
-/**
- * Import classes
- */
-use Arus\Doctrine\Bridge\Tests\Fixture;
-use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntity;
-use Arus\Doctrine\Bridge\Validator\Constraint\UniqueEntityValidator;
+namespace Sunrise\Bridge\Doctrine\Tests\Validator\Constraint;
+
+use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Validator\Constraints\Valid;
+use Psr\Container\ContainerInterface;
+use Sunrise\Bridge\Doctrine\Tests\Fixtures;
+use Sunrise\Bridge\Doctrine\Validator\Constraint\UniqueEntity;
+use Sunrise\Bridge\Doctrine\Validator\Constraint\UniqueEntityValidator;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\ContainerConstraintValidatorFactory;
 use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Validator\Validation;
 
-/**
- * UniqueEntityValidatorTest
- */
 class UniqueEntityValidatorTest extends TestCase
 {
-    use Fixture\ContainerAwareTrait;
-    use Fixture\DatabaseSchemaToolTrait;
+    use Fixtures\EntityManagerRegistryAwareTrait;
 
-    /**
-     * @return void
-     */
-    public function testUnexpectedConstraint() : void
+    private function createContainer() : ContainerInterface
     {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
+        $container = $this->createMock(ContainerInterface::class);
 
-        $this->expectException(UnexpectedTypeException::class);
-
-        $this->expectExceptionMessage(
-            'Expected argument of type "' . UniqueEntity::class . '", "' . Valid::class . '" given'
-        );
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new Valid());
-    }
-
-    /**
-     * @param mixed $invalidValue
-     * @param string $invalidValueType
-     *
-     * @return void
-     *
-     * @dataProvider invalidFieldsProvider
-     */
-    public function testInvalidFields($invalidValue, string $invalidValueType) : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage('Expected argument of type "array", "' . $invalidValueType . '" given');
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new UniqueEntity([
-            'fields' => $invalidValue,
-        ]));
-    }
-
-    /**
-     * @return array
-     */
-    public function invalidFieldsProvider() : array
-    {
-        return [
-            [null, 'null'],
-            [true, 'bool'],
-            [false, 'bool'],
-            [0, 'int'],
-            [0.0, 'float'],
-            ['', 'string'],
-            [new \stdClass, 'stdClass'],
-            [function () {
-            }, 'Closure'],
-            [\STDOUT, 'resource (stream)'],
-        ];
-    }
-
-    /**
-     * @param mixed $invalidValue
-     * @param string $invalidValueType
-     *
-     * @return void
-     *
-     * @dataProvider invalidMessageProvider
-     */
-    public function testInvalidMessage($invalidValue, string $invalidValueType) : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage('Expected argument of type "string", "' . $invalidValueType . '" given');
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new UniqueEntity([
-            'fields' => ['foo'],
-            'message' => $invalidValue,
-        ]));
-    }
-
-    /**
-     * @return array
-     */
-    public function invalidMessageProvider() : array
-    {
-        return [
-            [null, 'null'],
-            [true, 'bool'],
-            [false, 'bool'],
-            [0, 'int'],
-            [0.0, 'float'],
-            [[], 'array'],
-            [new \stdClass, 'stdClass'],
-            [function () {
-            }, 'Closure'],
-            [\STDOUT, 'resource (stream)'],
-        ];
-    }
-
-    /**
-     * @param mixed $invalidValue
-     * @param string $invalidValueType
-     *
-     * @return void
-     *
-     * @dataProvider invalidAtPathProvider
-     */
-    public function testInvalidAtPath($invalidValue, string $invalidValueType) : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage('Expected argument of type "string or null", "' . $invalidValueType . '" given');
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new UniqueEntity([
-            'fields' => ['foo'],
-            'atPath' => $invalidValue,
-        ]));
-    }
-
-    /**
-     * @return array
-     */
-    public function invalidAtPathProvider() : array
-    {
-        return [
-            [true, 'bool'],
-            [false, 'bool'],
-            [0, 'int'],
-            [0.0, 'float'],
-            [[], 'array'],
-            [new \stdClass, 'stdClass'],
-            [function () {
-            }, 'Closure'],
-            [\STDOUT, 'resource (stream)'],
-        ];
-    }
-
-    /**
-     * @return void
-     */
-    public function testEmptyFields() : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $this->expectException(ConstraintDefinitionException::class);
-        $this->expectExceptionMessage('The fields list is empty.');
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new UniqueEntity([
-            'fields' => [],
-        ]));
-    }
-
-    /**
-     * @param mixed $invalidValue
-     *
-     * @return void
-     *
-     * @dataProvider invalidFieldProvider
-     */
-    public function testInvalidField($invalidValue) : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $this->expectException(ConstraintDefinitionException::class);
-        $this->expectExceptionMessage('The fields list contains an invalid structure.');
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new UniqueEntity([
-            'fields' => [$invalidValue],
-        ]));
-    }
-
-    /**
-     * @return array
-     */
-    public function invalidFieldProvider() : array
-    {
-        return [
-            [null],
-            [true],
-            [false],
-            [0],
-            [0.0],
-            [[]],
-            [new \stdClass],
-            [function () {
-            }],
-            [\STDOUT],
-        ];
-    }
-
-    /**
-     * @return void
-     */
-    public function testNonexistentField() : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $this->expectException(ConstraintDefinitionException::class);
-        $this->expectExceptionMessage('The field "baz" is not mapped by Doctrine.');
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new UniqueEntity([
-            'fields' => ['baz'],
-        ]));
-    }
-
-    /**
-     * @return void
-     */
-    public function testNotMappedField() : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $this->expectException(ConstraintDefinitionException::class);
-        $this->expectExceptionMessage('The field "bar" is not mapped by Doctrine.');
-
-        $constraintValidator->validate(new Fixture\Entity\Bar(), new UniqueEntity([
-            'fields' => ['bar'],
-        ]));
-    }
-
-    /**
-     * @param mixed $invalidValue
-     *
-     * @return void
-     *
-     * @dataProvider notObjectProvider
-     */
-    public function testValidateNotObject($invalidValue) : void
-    {
-        $container = $this->getContainer();
-        $constraintValidator = new UniqueEntityValidator($container);
-
-        $constraintValidator->validate($invalidValue, new UniqueEntity([
-            'fields' => [],
-        ]));
-
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @return array
-     */
-    public function notObjectProvider() : array
-    {
-        return [
-            [null],
-            [true],
-            [false],
-            [0],
-            [0.0],
-            [''],
-            [[]],
-            [\STDOUT],
-        ];
-    }
-
-    /**
-     * @return void
-     */
-    public function testValidate() : void
-    {
-        $container = $this->getContainer();
-        $doctrine = $container->get('doctrine');
-        $validator = $container->get('validator');
-        $manager = $doctrine->getManager('foo');
-
-        $this->createDatabaseSchema($manager);
-
-        $entry = new Fixture\Entity\Baz([
-            'foo' => 'foo.value',
-            'bar' => 'bar.value',
-            'baz' => 'baz.value',
-            'qux' => 'qux.value',
+        $container->storage[ManagerRegistry::class] = $this->getEntityManagerRegistry(null, [
+            'foo' => [
+                'orm' => [
+                    'metadata_driver' => 'annotations',
+                ],
+            ],
         ]);
 
-        $manager->persist($entry);
+        $container->storage[UniqueEntityValidator::class] = new UniqueEntityValidator(
+            $container->storage[ManagerRegistry::class]
+        );
 
-        $manager->persist(new Fixture\Entity\Baz([
-            'quux' => $entry,
-        ]));
+        $validatorBuilder = Validation::createValidatorBuilder();
+        $validatorBuilder->enableAnnotationMapping();
+        $validatorBuilder->setConstraintValidatorFactory(new ContainerConstraintValidatorFactory($container));
 
-        $manager->persist(new Fixture\Entity\Baz([
-            'bar' => 'bar.value',
-        ]));
+        $container->storage[ValidatorInterface::class] = $validatorBuilder->getValidator();
 
-        $manager->persist(new Fixture\Entity\Baz([
-            'baz' => 'baz.value',
-        ]));
+        $container->method('has')->will($this->returnCallback(function ($name) use ($container) {
+            return isset($container->storage[$name]);
+        }));
 
-        $manager->persist(new Fixture\Entity\Baz([
-            'qux' => 'qux.value',
-        ]));
+        $container->method('get')->will($this->returnCallback(function ($name) use ($container) {
+            return $container->storage[$name] ?? null;
+        }));
 
-        $manager->flush();
+        return $container;
+    }
 
-        // update...
-        $violations = $validator->validate($entry);
-        $this->assertCount(0, $violations);
+    public function testUnexpectedEntity()
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $constraintValidator = new UniqueEntityValidator($registry);
+        $constraint = new UniqueEntity(['foo']);
 
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'bar' => 'bar.value',
-            'baz' => 'baz.value',
-        ]));
+        $this->expectException(UnexpectedTypeException::class);
 
-        $this->assertCount(1, $violations);
-        $this->assertSame('The value "bar.value" is not unique.', $violations->get(0)->getMessage());
-        $this->assertSame('bar', $violations->get(0)->getPropertyPath());
-        $this->assertSame('bar.value', $violations->get(0)->getInvalidValue());
+        $constraintValidator->validate(null, $constraint);
+    }
 
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'baz' => 'baz.value',
-            'qux' => 'qux.value',
-        ]));
+    public function testUnmanagedEntity() : void
+    {
+        $registry = $this->getEntityManagerRegistry(null, ['foo' => null, 'bar' => null]);
+        $constraintValidator = new UniqueEntityValidator($registry);
+        $constraint = new UniqueEntity(['foo']);
 
-        $this->assertCount(1, $violations);
-        $this->assertSame('The value "baz.value" is not unique.', $violations->get(0)->getMessage());
-        $this->assertSame('xxx', $violations->get(0)->getPropertyPath());
-        $this->assertSame('baz.value', $violations->get(0)->getInvalidValue());
+        $this->expectException(ConstraintDefinitionException::class);
+        $this->expectExceptionMessage('Unable to get Entity Manager for the entity "stdClass".');
 
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'qux' => 'qux.value',
-            'bar' => 'bar.value',
-        ]));
+        $constraintValidator->validate(new \stdClass, $constraint);
+    }
 
-        $this->assertCount(1, $violations);
-        $this->assertSame('non-unique value: "bar.value"', $violations->get(0)->getMessage());
-        $this->assertSame('bar', $violations->get(0)->getPropertyPath());
-        $this->assertSame('bar.value', $violations->get(0)->getInvalidValue());
+    public function testUnexpectedConstraint()
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $constraintValidator = new UniqueEntityValidator($registry);
 
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'foo' => 'foo.value',
-            'bar' => 'bar.value',
-            'baz' => 'baz.value',
-            'qux' => 'qux.value',
-        ]));
+        $this->expectException(UnexpectedTypeException::class);
 
-        $this->assertCount(4, $violations);
+        $constraintValidator->validate(new \stdClass, $this->createMock(Constraint::class));
+    }
 
-        $this->assertSame('The value "foo.value" is not unique.', $violations->get(0)->getMessage());
-        $this->assertSame('foo', $violations->get(0)->getPropertyPath());
-        $this->assertSame('foo.value', $violations->get(0)->getInvalidValue());
+    public function testEmptyFields()
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $constraintValidator = new UniqueEntityValidator($registry);
+        $constraint = new UniqueEntity([]);
 
-        $this->assertSame('The value "bar.value" is not unique.', $violations->get(1)->getMessage());
-        $this->assertSame('bar', $violations->get(1)->getPropertyPath());
-        $this->assertSame('bar.value', $violations->get(1)->getInvalidValue());
+        $this->expectException(ConstraintDefinitionException::class);
+        $this->expectExceptionMessage('No fields specified.');
 
-        $this->assertSame('The value "baz.value" is not unique.', $violations->get(2)->getMessage());
-        $this->assertSame('xxx', $violations->get(2)->getPropertyPath());
-        $this->assertSame('baz.value', $violations->get(2)->getInvalidValue());
+        $constraintValidator->validate(new \stdClass, $constraint);
+    }
 
-        $this->assertSame('non-unique value: "bar.value"', $violations->get(3)->getMessage());
-        $this->assertSame('bar', $violations->get(3)->getPropertyPath());
-        $this->assertSame('bar.value', $violations->get(3)->getInvalidValue());
+    public function testUnknownField()
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $constraintValidator = new UniqueEntityValidator($registry);
+        $constraint = new UniqueEntity(['undefined']);
+        $entity = new Fixtures\Entity\Common\Uniqueable();
 
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'foo' => 'unique.foo.value',
-        ]));
+        $this->expectException(ConstraintDefinitionException::class);
+        $this->expectExceptionMessage('The field "undefined" is not mapped by Doctrine.');
 
-        $this->assertCount(0, $violations);
+        $constraintValidator->validate($entity, $constraint);
+    }
 
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'bar' => 'unique.bar.value',
-            'baz' => 'baz.value',
-        ]));
+    public function testValidationWithOneField() : void
+    {
+        $container = $this->createContainer();
+        $registry = $container->get(ManagerRegistry::class);
+        $validator = $container->get(ValidatorInterface::class);
 
-        $this->assertCount(0, $violations);
+        $registry->getConnection()->query('INSERT INTO Uniqueable (id, foo) VALUES (
+            "B5FF0CA7-AC5E-43D1-98EB-DFCCCC754B51",
+            "3AE5A862-79BF-487D-9117-B8ECB9EB388A"
+        )');
 
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'bar' => 'bar.value',
-            'baz' => 'unique.baz.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'baz' => 'unique.baz.value',
-            'qux' => 'qux.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'baz' => 'baz.value',
-            'qux' => 'unique.qux.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'qux' => 'unique.qux.value',
-            'bar' => 'bar.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'qux' => 'qux.value',
-            'bar' => 'unique.bar.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'foo' => 'unique.foo.value',
-            'bar' => 'unique.bar.value',
-            'baz' => 'unique.baz.value',
-            'qux' => 'unique.qux.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'bar' => 'bar.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'baz' => 'baz.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'qux' => 'qux.value',
-        ]));
-
-        $this->assertCount(0, $violations);
-
-        $violations = $validator->validate(new Fixture\Entity\Baz([
-            'quux' => $entry,
+        $violations = $validator->validate(new Fixtures\Entity\Common\Uniqueable([
+            'foo' => '3AE5A862-79BF-487D-9117-B8ECB9EB388A',
         ]));
 
         $this->assertCount(1, $violations);
+    }
+
+    public function testValidationWithSeveralFields() : void
+    {
+        $container = $this->createContainer();
+        $registry = $container->get(ManagerRegistry::class);
+        $validator = $container->get(ValidatorInterface::class);
+
+        $registry->getConnection()->query('INSERT INTO Uniqueable (id, bar, baz) VALUES (
+            "48067072-36A9-4FC7-9791-808B0AC9618C",
+            "3C2E5599-2EEE-4ED5-878F-07F1F2F8ABBC",
+            "9D2D6AB5-292C-4AD3-A0F4-6685F6D271EC"
+        )');
+
+        $violations = $validator->validate(new Fixtures\Entity\Common\Uniqueable([
+            'bar' => '3C2E5599-2EEE-4ED5-878F-07F1F2F8ABBC',
+            'baz' => '9D2D6AB5-292C-4AD3-A0F4-6685F6D271EC',
+        ]));
+
+        $this->assertCount(1, $violations);
+    }
+
+    public function testValidationWithAssociation() : void
+    {
+        $container = $this->createContainer();
+        $registry = $container->get(ManagerRegistry::class);
+        $validator = $container->get(ValidatorInterface::class);
+
+        $registry->getConnection()->query('INSERT INTO Uniqueable (id) VALUES (
+            "4374EDCA-6760-4E2F-B86E-A0190DFD61CA"
+        )');
+
+        $registry->getConnection()->query('INSERT INTO Uniqueable (id, qux_id) VALUES (
+            "39DCF53A-FBFB-4B77-9CC3-A16ED7160D1C",
+            "4374EDCA-6760-4E2F-B86E-A0190DFD61CA"
+        )');
+
+        $violations = $validator->validate(new Fixtures\Entity\Common\Uniqueable([
+            'qux' => new Fixtures\Entity\Common\Uniqueable([
+                'id' => '4374EDCA-6760-4E2F-B86E-A0190DFD61CA',
+            ]),
+        ]));
+
+        $this->assertCount(1, $violations);
+    }
+
+    public function testSuccessfulValidation() : void
+    {
+        $container = $this->createContainer();
+        $validator = $container->get(ValidatorInterface::class);
+
+        $violations = $validator->validate(new Fixtures\Entity\Common\Uniqueable([
+            'foo' => 'A1F4CB83-54A0-4975-88F3-D2F0F4D0CE26',
+        ]));
+
+        $this->assertCount(0, $violations);
     }
 }
