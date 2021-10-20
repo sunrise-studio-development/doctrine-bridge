@@ -135,7 +135,10 @@ final class CommandProvider
     public function getMigrationsCommands(array $parameters, ?LoggerInterface $logger = null) : array
     {
         // the ability to specify the logger through parameters...
-        $logger = $logger ?? $parameters['logger'] ?? null;
+        if (isset($parameters['logger'])) {
+            $logger = $parameters['logger'];
+            unset($parameters['logger']);
+        }
 
         // TODO: maybe this code should be moved somewhere...
         $configuration = new ConfigurationArray($parameters);
