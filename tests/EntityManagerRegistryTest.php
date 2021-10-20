@@ -585,4 +585,11 @@ class EntityManagerRegistryTest extends TestCase
 
         $this->assertTrue($registry->getManager('foo')->isOpen());
     }
+
+    public function testGetCommands() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+
+        $this->assertCount(31, $registry->getCommands());
+    }
 }

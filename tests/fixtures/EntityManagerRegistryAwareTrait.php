@@ -2,7 +2,6 @@
 
 namespace Sunrise\Bridge\Doctrine\Tests\Fixtures;
 
-use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry as ManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 
@@ -18,16 +17,6 @@ trait EntityManagerRegistryAwareTrait
     {
         return (function () : array {
             return require __DIR__ . '/config/doctrine.php';
-        })->call($this);
-    }
-
-    /**
-     * @var array
-     */
-    public function getMigrationsConfig() : array
-    {
-        return (function () : array {
-            return require __DIR__ . '/config/migrations.php';
         })->call($this);
     }
 
@@ -48,12 +37,7 @@ trait EntityManagerRegistryAwareTrait
         }
 
         $registry = new EntityManagerRegistry($config, $name);
-
-        foreach ($registry->getManagers() as $manager) {
-            $schema = new SchemaTool($manager);
-            $schema->dropSchema($manager->getMetadataFactory()->getAllMetadata());
-            $schema->createSchema($manager->getMetadataFactory()->getAllMetadata());
-        }
+        $registry->getMaintainer()->recreateAllSchemas();
 
         return $registry;
     }

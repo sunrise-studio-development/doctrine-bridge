@@ -53,8 +53,8 @@ class EntityManagerMaintainerTest extends TestCase
 
         $maintainer->clearAllManagers();
 
-        $this->asserttrue($fooOnClear->isCalled);
-        $this->asserttrue($barOnClear->isCalled);
+        $this->assertTrue($fooOnClear->isCalled);
+        $this->assertTrue($barOnClear->isCalled);
     }
 
     public function testReopenAllManagers() : void

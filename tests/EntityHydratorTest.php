@@ -49,7 +49,7 @@ class EntityHydratorTest extends TestCase
     {
         return [
             ['NonexistenceClass'],
-            [Fixtures\Entity\Common\InvalidEntity::class],
+            [Fixtures\Entity\Common\Uninitiable::class],
             [\stdClass::class],
             [null],
             [false],
@@ -325,8 +325,10 @@ class EntityHydratorTest extends TestCase
 
         $data = [
             'tags' => [
-                'name' => 'e4ddb0ae-bb87-424b-a467-3ee4777e9ee6',
-                'summary' => '2219d4b6-0517-4c93-9698-533d16e89269',
+                [
+                    'name' => 'e4ddb0ae-bb87-424b-a467-3ee4777e9ee6',
+                    'summary' => '2219d4b6-0517-4c93-9698-533d16e89269',
+                ],
             ],
         ];
 
@@ -334,8 +336,8 @@ class EntityHydratorTest extends TestCase
 
         $this->assertCount(1, $object->getTags());
 
-        $this->assertSame($data['tags']['name'], $object->getTags()->offsetGet(0)->getName());
-        $this->assertSame($data['tags']['summary'], $object->getTags()->offsetGet(0)->getSummary());
+        $this->assertSame($data['tags'][0]['name'], $object->getTags()->offsetGet(0)->getName());
+        $this->assertSame($data['tags'][0]['summary'], $object->getTags()->offsetGet(0)->getSummary());
     }
 
     public function testHydrateManyAssociationsWithSeveral() : void
@@ -427,7 +429,9 @@ class EntityHydratorTest extends TestCase
         $registry->getManager()->flush();
 
         $data = [
-            'tags' => $tag->getId(),
+            'tags' => [
+                $tag->getId(),
+            ],
         ];
 
         $object = $registry->getHydrator()->hydrate(Fixtures\Entity\Common\Post::class, $data);
@@ -592,5 +596,235 @@ class EntityHydratorTest extends TestCase
         $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
 
         $this->assertCount(0, $object->getUnaddableAssociation());
+    }
+
+    public function testHydrateUnhydrableFieldMarkedThroughAnnotationOnly() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+        $hydrator->useAnnotations();
+        $hydrator->useAnnotations(); // for CC
+
+        $data = ['unhydrableValueMarkedThroughAnnotationOnly' => 'foo'];
+
+        $this->assertEmpty($hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data)
+                ->getUnhydrableValueMarkedThroughAnnotationOnly());
+    }
+
+    public function testPrivateSetter() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'privateValue' => '0023352c-4644-4020-92c7-2a5181749c0c',
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertEmpty($object->getPrivateValue());
+    }
+
+    public function testUnparameterizedSetter() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'unparameterizedValue' => '0a77cdc4-c5bc-4a4c-b462-3cf650f17c96',
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertEmpty($object->getUnparameterizedValue());
+    }
+
+    public function testPrivateAdder() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'privateAssociation' => [
+                [
+                    'name' => '6376644c-56d6-4a59-bc5f-6057896bb5d7',
+                ],
+            ],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertEmpty($object->getPrivateAssociation());
+    }
+
+    public function testUnparameterizedAdder() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'unparameterizedAssociation' => [
+                [
+                    'name' => '6376644c-56d6-4a59-bc5f-6057896bb5d7',
+                ],
+            ],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertEmpty($object->getUnparameterizedAssociation());
+    }
+
+    public function testSnakeCasedField() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = ['snake_cased_value' => '2ca57056-a31b-4569-8af1-bb5e53ebe1f7'];
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertNotEmpty($object->getSnakeCasedValue());
+    }
+
+    public function testArrayableField() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = ['arrayValue' => ['adc07152-0a67-4b4d-b781-9289d5afc8a3']];
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame($data['arrayValue'], $object->getArrayValue());
+    }
+
+    public function testObjectableField() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = ['objectValue' => (object) ['foo' => 'adc07152-0a67-4b4d-b781-9289d5afc8a3']];
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame($data['objectValue'], $object->getObjectValue());
+    }
+
+    public function testInvalidDateTime() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $dt = new \DateTime('1 day ago');
+        $post = new Fixtures\Entity\Common\Post();
+        $post->setEnablesAt($dt);
+        $hydrator->hydrate($post, ['enablesAt' => 0.0]);
+
+        $this->assertSame($dt, $post->getEnablesAt());
+    }
+
+    public function testInvalidDateTimeImmutable() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $dt = new \DateTimeImmutable('1 day ago');
+        $post = new Fixtures\Entity\Common\Post();
+        $post->setUpdatedAt($dt);
+        $hydrator->hydrate($post, ['updatedAt' => 0.0]);
+
+        $this->assertSame($dt, $post->getUpdatedAt());
+    }
+
+    public function testInvalidDateInterval() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $di = new \DateInterval('PT1S');
+        $post = new Fixtures\Entity\Common\Post();
+        $post->setSomeInterval($di);
+        $hydrator->hydrate($post, ['someInterval' => 0.0]);
+
+        $this->assertSame($di, $post->getSomeInterval());
+    }
+
+    public function testUnsupportedType()
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = ['unsupportedTypeValue' => 'ee3c5c4b-4d81-4f9a-9a8b-c55db5f0249a'];
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertEmpty($object->getUnsupportedTypeValue());
+    }
+
+    public function testMixedType()
+    {
+        if (8 > \PHP_MAJOR_VERSION) {
+            $this->markTestSkipped('PHP 8 is required...');
+            return;
+        }
+
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = ['mixedTypeValue' => 'ac790ff7-ec0f-4431-8192-f39fc681ef74'];
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertSame($data['mixedTypeValue'], $object->getMixedTypeValue());
+    }
+
+    public function testUnionType()
+    {
+        if (8 > \PHP_MAJOR_VERSION) {
+            $this->markTestSkipped('PHP 8 is required...');
+            return;
+        }
+
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator('bar');
+
+        $object = $hydrator->hydrate(Fixtures\Entity\PHP80\User::class, [
+            'password' => 'b2ef8ea9-2bfe-40d5-92ae-769c658ac6fb',
+        ]);
+
+        $this->assertNotEmpty($object->getPassword());
+    }
+
+    public function testHydrateManyAssociationsUsingNotArray() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'tags' => new \stdClass,
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertCount(0, $object->getTags());
+    }
+
+    public function testHydrateManyAssociationsUsingNotList() : void
+    {
+        $registry = $this->getEntityManagerRegistry();
+        $hydrator = $registry->getHydrator();
+
+        $data = [
+            'tags' => [
+                'foo' => [
+                    'name' => '37735afe-30e7-45ba-bb1a-306d872669e9',
+                    'summary' => 'f1e34d6d-44a2-40f5-a50e-864755fb3d82',
+                ],
+                'bar' => [
+                    'name' => 'e52e2226-7187-4d9b-930a-ddd09291caac',
+                    'summary' => '56be736b-12a4-4cd3-bfac-971a2e3e7fea',
+                ],
+            ],
+        ];
+
+        $object = $hydrator->hydrate(Fixtures\Entity\Common\Post::class, $data);
+
+        $this->assertCount(0, $object->getTags());
     }
 }
