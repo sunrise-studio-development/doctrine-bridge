@@ -437,9 +437,7 @@ final class EntityHydrator
      */
     private function getFieldAdder(ReflectionClass $class, ReflectionProperty $field) : ?ReflectionMethod
     {
-        $singulars = (array) $this->englishInflector
-            ->singularize($this->camelizeFieldName($field->name));
-
+        $singulars = $this->englishInflector->singularize($this->camelizeFieldName($field->name));
         foreach ($singulars as $singular) {
             $adderName = 'add' . $singular;
             if (!$class->hasMethod($adderName)) {
@@ -506,9 +504,9 @@ final class EntityHydrator
      * Returns null if the given value cannot be typized.
      *
      * @param ReflectionNamedType $type
-     * @param bool|int|float|string|array|stdClass $value
+     * @param bool|int|float|string|array|\stdClass $value
      *
-     * @return bool|int|float|string|array|stdClass|DateTime|DateTimeImmutable|DateInterval|null
+     * @return bool|int|float|string|array|\stdClass|DateTime|DateTimeImmutable|DateInterval|null
      */
     private function typizeFieldValue(ReflectionNamedType $type, $value)
     {
