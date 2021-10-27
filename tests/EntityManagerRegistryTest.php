@@ -492,6 +492,20 @@ class EntityManagerRegistryTest extends TestCase
         $this->assertSame($bar, $registry->getManager('bar')->getConfiguration()->getQueryCache());
     }
 
+    public function testOrmSetResultCache() : void
+    {
+        $foo = new ArrayCache();
+        $bar = new ArrayCache();
+
+        $registry = $this->getEntityManagerRegistry(null, [
+            'foo' => ['orm' => ['result_cache' => $foo]],
+            'bar' => ['orm' => ['result_cache' => $bar]],
+        ]);
+
+        $this->assertSame($foo, $registry->getManager('foo')->getConfiguration()->getResultCache());
+        $this->assertSame($bar, $registry->getManager('bar')->getConfiguration()->getResultCache());
+    }
+
     public function testOrmSetHydrationCache() : void
     {
         $foo = new ArrayCache();

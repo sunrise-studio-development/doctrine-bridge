@@ -48,6 +48,9 @@ class UniqueEntityValidator extends ConstraintValidator
 
     /**
      * {@inheritdoc}
+     *
+     * @param object $entity
+     * @param UniqueEntity $constraint
      */
     public function validate($entity, Constraint $constraint)
     {
