@@ -94,6 +94,7 @@ $doctrine = new EntityManagerRegistry($configuration, $registryName = 'ORM');
 | hydration_cache                  |              | \Psr\Cache\CacheItemPoolInterface                          |                                             |                 |
 | metadata_cache                   |              | \Psr\Cache\CacheItemPoolInterface                          |                                             |                 |
 | query_cache                      |              | \Psr\Cache\CacheItemPoolInterface                          |                                             |                 |
+| result_cache                     |              | \Psr\Cache\CacheItemPoolInterface                          |                                             |                 |
 
 #### Migrations configuration
 
