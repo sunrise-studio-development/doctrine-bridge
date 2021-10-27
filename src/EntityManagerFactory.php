@@ -93,6 +93,7 @@ final class EntityManagerFactory
         'hydration_cache' => 'HydrationCache',
         'metadata_cache' => 'MetadataCache',
         'query_cache' => 'QueryCache',
+        'result_cache' => 'ResultCache',
     ];
 
     /**
