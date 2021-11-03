@@ -615,17 +615,17 @@ final class QueryFilter
      */
     private function resolveSortDirection($dir, ?string $default = null) : ?string
     {
-        switch ($dir) {
-            case self::SORT_ASC:
-            case 'ASC':
-            case 'asc':
+        switch (true) {
+            case $dir === self::SORT_ASC:
+            case $dir === 'ASC':
+            case $dir === 'asc':
                 return 'ASC';
-            case self::SORT_DESC:
-            case 'DESC':
-            case 'desc':
+            case $dir === self::SORT_DESC:
+            case $dir === 'DESC':
+            case $dir === 'desc':
                 return 'DESC';
-            default:
-                return $default;
         }
+
+        return $default;
     }
 }
