@@ -68,6 +68,8 @@ final class EntityManagerMaintainer
     public function reopenAllManagers() : void
     {
         foreach ($this->entityManagerRegistry->getManagers() as $name => $manager) {
+            /** @var \Doctrine\ORM\EntityManager $manager */
+
             $manager->isOpen() or $this->entityManagerRegistry->resetManager($name);
         }
     }

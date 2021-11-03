@@ -168,6 +168,8 @@ final class EntityManagerRegistry extends AbstractEntityManagerRegistry implemen
     {
         foreach ($this->getManagers() as $manager) {
             try {
+                /** @var \Doctrine\ORM\EntityManager $manager */
+
                 return $manager->getConfiguration()->getEntityNamespace($alias);
             } catch (ORMException $e) {
             }

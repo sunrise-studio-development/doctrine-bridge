@@ -48,15 +48,16 @@ class UniqueEntityValidator extends ConstraintValidator
 
     /**
      * {@inheritdoc}
-     *
-     * @param object $entity
-     * @param UniqueEntity $constraint
      */
-    public function validate($entity, Constraint $constraint)
+    public function validate($value, Constraint $constraint)
     {
-        $this->validateEntity($entity);
+        /** @var object $value */
+        /** @var UniqueEntity $constraint */
+
+        $this->validateEntity($value);
         $this->validateConstraint($constraint);
 
+        $entity = $value;
         $entityName = get_class($entity);
 
         $entityManager = isset($constraint->em) ?
@@ -70,6 +71,7 @@ class UniqueEntityValidator extends ConstraintValidator
             ));
         }
 
+        /** @var \Doctrine\ORM\Mapping\ClassMetadataInfo */
         $entityMetadata = $entityManager->getClassMetadata($entityName);
 
         $criteria = [];
