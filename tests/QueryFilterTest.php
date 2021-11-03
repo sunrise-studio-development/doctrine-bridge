@@ -58,7 +58,7 @@ class QueryFilterTest extends TestCase
         $em = $this->getEntityManagerRegistry()->getManager();
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
-        $qf = new QueryFilter(['foo' => ' 123.45 ']);
+        $qf = new QueryFilter(['foo' => ' 123.45']);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_NUM);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b = :p0', $qb->getDQL());
@@ -91,7 +91,7 @@ class QueryFilterTest extends TestCase
         $em = $this->getEntityManagerRegistry()->getManager();
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
-        $qf = new QueryFilter(['foo' => ['min' => ' 123.45 ']]);
+        $qf = new QueryFilter(['foo' => ['min' => ' 123.45']]);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_NUM);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b >= :p0', $qb->getDQL());
@@ -103,7 +103,7 @@ class QueryFilterTest extends TestCase
         $em = $this->getEntityManagerRegistry()->getManager();
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
-        $qf = new QueryFilter(['foo' => ['max' => ' 123.45 ']]);
+        $qf = new QueryFilter(['foo' => ['max' => ' 123.45']]);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_NUM);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b <= :p0', $qb->getDQL());
@@ -115,7 +115,7 @@ class QueryFilterTest extends TestCase
         $em = $this->getEntityManagerRegistry()->getManager();
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
-        $qf = new QueryFilter(['foo' => ['min' => ' 123.45 ', 'max' => ' 678.90 ']]);
+        $qf = new QueryFilter(['foo' => ['min' => ' 123.45', 'max' => ' 678.90']]);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_NUM);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b >= :p0 AND a.b <= :p1', $qb->getDQL());
