@@ -17,6 +17,8 @@ composer require 'sunrise/doctrine-bridge:^2.0'
 
 ## Entity Manager Registry
 
+### Quick start
+
 ```php
 use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 
@@ -49,12 +51,6 @@ $doctrine = new EntityManagerRegistry($configuration, $registryName = 'ORM');
 ```
 
 ### Configuration
-
-#### Minimal configuration
-
-```php
-
-```
 
 #### DBAL configuration
 
@@ -179,6 +175,108 @@ $hydrator = $doctrine->getHydrator($managerName = null);
 $someEntity = $hydrator->hydrate(Post::class, $data);
 ```
 
+## Query Filter
+
+```php
+use App\Doctrine\QueryFilter;
+
+// initializes the filter with the specified data,
+// which can be, for example, the request query parameters.
+$filter = new QueryFilter([
+    // some user data...
+]);
+
+// ['disabled' => 'yes']
+// WHERE post.isDisabled = :p0 (true)
+// More details at: https://github.com/php/php-src/blob/b7d90f09d4a1688f2692f2fa9067d0a07f78cc7d/ext/filter/logical_filters.c#L273
+$filter->allowFilterBy('disabled', 'post.isDisabled', $filter::TYPE_BOOL);
+
+// ['hits' => '100']
+// WHERE post.hits = :p0 (100)
+$filter->allowFilterBy('hits', 'post.hits', $filter::TYPE_NUM);
+// ['hits' => [min => '100']]
+// WHERE post.hits >= :p0 (100)
+$filter->allowFilterBy('hits', 'post.hits', $filter::TYPE_NUM);
+// ['hits' => [max => '100']]
+// WHERE post.hits <= :p0 (100)
+$filter->allowFilterBy('hits', 'post.hits', $filter::TYPE_NUM);
+// ['hits' => [min => '50', max => '150']]
+// WHERE post.hits >= :p0 (50) AND post.hits <= :p1 (150)
+$filter->allowFilterBy('hits', 'post.hits', $filter::TYPE_NUM);
+
+// ['name' => 'Hello']
+// WHERE post.id = :p0 ("Hello")
+$filter->allowFilterBy('name', 'post.name');
+// ['name' => 'Hello']
+// WHERE post.id LIKE :p0 ("%Hello")
+$filter->allowFilterBy('name', 'post.name', $filter::TYPE_STR, $filter::MODE_LIKE|$filter::STARTS_WITH);
+// ['name' => 'Hello']
+// WHERE post.id LIKE :p0 ("Hello%")
+$filter->allowFilterBy('name', 'post.name', $filter::TYPE_STR, $filter::MODE_LIKE|$filter::ENDS_WITH);
+// ['name' => 'Hello']
+// WHERE post.id LIKE :p0 ("%Hello%")
+$filter->allowFilterBy('name', 'post.name', $filter::TYPE_STR, $filter::MODE_LIKE|$filter::CONTAINS);
+// ['name' => 'Hello*Something%Something']
+// WHERE post.id LIKE :p0 ("%Hello%Something\%Something%")
+// Note that asterisks will be converted to percentages...
+$filter->allowFilterBy('name', 'post.name', $filter::TYPE_STR, $filter::MODE_LIKE|$filter::CONTAINS|$filter::WILDCARDS);
+
+// ['created' => '2004-01-10']
+// WHERE post.createdAt = :p0 (2004-01-10)
+$filter->allowFilterBy('created', 'post.createdAt', $filter::TYPE_DATE);
+// ['created' => [from => '1970-01-01']]
+// WHERE post.createdAt >= :p0 (1970-01-01)
+$filter->allowFilterBy('created', 'post.createdAt', $filter::TYPE_DATE);
+// ['created' => [until => '2038-01-19']]
+// WHERE post.createdAt <= :p0 (2038-01-19)
+$filter->allowFilterBy('created', 'post.createdAt', $filter::TYPE_DATE);
+// ['created' => [from => '1970-01-01', until => '2038-01-19']]
+// WHERE post.createdAt >= :p0 (1970-01-01) AND post.createdAt <= :p1 (2038-01-19)
+$filter->allowFilterBy('created', 'post.createdAt', $filter::TYPE_DATE);
+// Note that the DATE type also work with time and can accept a timestamp.
+// ['created' => '1073741824'] // work with the timestamp...
+// WHERE post.createdAt = :p0 (2004-01-10)
+$filter->allowFilterBy('created', 'post.createdAt', $filter::TYPE_DATE);
+// Note that the DATE type also work with time and can accept a timestamp.
+// ['created' => '12:00'] // work with the time...
+// WHERE post.createdAt = :p0 (12:00)
+$filter->allowFilterBy('opens', 'post.opensAt', $filter::TYPE_DATE);
+
+// ['sort' => 'name']
+// ORDER BY post.name ASC
+$filter->allowSortBy('name', 'post.name' /* default is ascending direction */);
+// ['sort' => 'created']
+// ORDER BY post.createdAt DESC
+$filter->allowSortBy('created', 'post.createdAt', $filter::SORT_DESC /* specified default sort direction */);
+// ['sort' => ['name' => 'asc', 'created' => desc]]
+// ORDER BY post.name ASC, post.createdAt DESC
+$filter->allowSortBy('name', 'post.name' /* default is ascending direction */);
+$filter->allowSortBy('created', 'post.createdAt', $filter::SORT_DESC /* specified default sort direction */);
+
+// If an user data doesn't contain sort fields,
+// then will be applied the default sort logic.
+$filter->defaultSortBy('post.name', $filter::SORT_ASC);
+$filter->defaultSortBy('post.createdAt', $filter::SORT_DESC);
+
+// Sets the default limit:
+$filter->defaultLimit(100);
+// Sets the maximum limit value:
+$filter->maxLimit(100);
+
+// For rows limiting, you can pass the following:
+// ['limit' => 100]
+// ['offset' => 0]
+// ... or:
+// ['page' => 1]
+// ['pagesize' => 100]
+
+// Create your QueryBuilder instance...
+$qb = $this->createQueryBuilder('post');
+// ... and apply the filter to it:
+$filter->apply($qb);
+// ... and now you can run your query!
+```
+
 ## Maintainer
 
 ```php
@@ -226,7 +324,7 @@ class SomeEntity {
 }
 ```
 
-## CLI
+## Example for your CLI application
 
 ```php
 declare(strict_types=1);
@@ -253,7 +351,89 @@ $application->addCommands(
 $application->run();
 ```
 
-## PHP-DI definitions
+## PHP-DI definition examples
+
+### Doctrine
+
+```php
+declare(strict_types=1);
+
+use App\Bundle\Security\Password\Type\PasswordType;
+use Doctrine\Persistence\ManagerRegistry;
+use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
+use Sunrise\Bridge\Doctrine\Logger\SqlLogger;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+
+use function DI\create;
+use function DI\env;
+use function DI\get;
+use function DI\string;
+
+return [
+    'doctrine' => create(EntityManagerRegistry::class)
+        ->constructor(
+            get('doctrine.configuration'),
+        ),
+
+    'doctrine.configuration' => [
+        'master' => [
+            'dbal' => [
+                'connection' => get('doctrine.configuration.master.dbal.connection'),
+                'sql_logger' => get('doctrine.configuration.master.dbal.sql_logger'),
+            ],
+            'orm' => [
+                'entity_locations' => get('doctrine.configuration.master.orm.entity_locations'),
+                'entity_namespaces' => get('doctrine.configuration.master.orm.entity_namespaces'),
+                'metadata_driver' => get('doctrine.configuration.master.orm.metadata_driver'),
+                'metadata_cache' => get('doctrine.configuration.master.orm.metadata_cache'),
+                'query_cache' => get('doctrine.configuration.master.orm.query_cache'),
+                'result_cache' => get('doctrine.configuration.master.orm.result_cache'),
+                'proxy_dir' => get('doctrine.configuration.master.orm.proxy_dir'),
+                'proxy_auto_generate' => get('doctrine.configuration.master.orm.proxy_auto_generate'),
+            ],
+            'migrations' => [
+                'logger' => get('doctrine.configuration.default.migrations.logger'),
+                'migrations_paths' => get('doctrine.configuration.default.migrations.migrations_paths'),
+            ],
+            'types' => get('doctrine.configuration.types'),
+        ],
+    ],
+
+    'doctrine.configuration.master.dbal.connection' => ['url' => env('DATABASE_MASTER_URL')],
+    'doctrine.configuration.master.dbal.sql_logger' => get('doctrine.configuration.default.dbal.sql_logger'),
+    'doctrine.configuration.master.orm.entity_locations' => get('doctrine.configuration.default.orm.entity_locations'),
+    'doctrine.configuration.master.orm.entity_namespaces' => get('doctrine.configuration.default.orm.entity_namespaces'),
+    'doctrine.configuration.master.orm.metadata_driver' => get('doctrine.configuration.default.orm.metadata_driver'),
+    'doctrine.configuration.master.orm.metadata_cache' => get('doctrine.configuration.default.orm.metadata_cache'),
+    'doctrine.configuration.master.orm.query_cache' => get('doctrine.configuration.default.orm.query_cache'),
+    'doctrine.configuration.master.orm.result_cache' => get('doctrine.configuration.default.orm.result_cache'),
+    'doctrine.configuration.master.orm.proxy_dir' => get('doctrine.configuration.default.orm.proxy_dir'),
+    'doctrine.configuration.master.orm.proxy_auto_generate' => get('doctrine.configuration.default.orm.proxy_auto_generate'),
+
+    'doctrine.configuration.default.dbal.sql_logger' => create(SqlLogger::class)->constructor(get('logger')),
+    'doctrine.configuration.default.orm.entity_locations' => [string('{app.root}/src/Entity')],
+    'doctrine.configuration.default.orm.entity_namespaces' => ['App' => 'App\Entity'],
+    'doctrine.configuration.default.orm.metadata_driver' => 'annotations',
+    'doctrine.configuration.default.orm.metadata_cache' => create(ArrayAdapter::class),
+    'doctrine.configuration.default.orm.query_cache' => create(ArrayAdapter::class),
+    'doctrine.configuration.default.orm.result_cache' => create(ArrayAdapter::class),
+    'doctrine.configuration.default.orm.proxy_dir' => string('{app.root}/var/cache/doctrine/proxies'),
+    'doctrine.configuration.default.orm.proxy_auto_generate' => true,
+
+    'doctrine.configuration.default.migrations.logger' => get('logger'),
+    'doctrine.configuration.default.migrations.migrations_paths' => [
+        'App\Migrations' => string('{app.root}/resources/migrations'),
+    ],
+
+    'doctrine.configuration.types' => [
+        PasswordType::NAME => PasswordType::class,
+    ],
+
+    // autowiring...
+    ManagerRegistry::class => get('doctrine'),
+    EntityManagerRegistry::class => get('doctrine'),
+];
+```
 
 ### Validator
 
