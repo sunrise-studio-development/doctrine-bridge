@@ -182,7 +182,7 @@ class QueryFilterTest extends TestCase
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_STR, $qf::MODE_LIKE|$qf::STARTS_WITH);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b LIKE :p0', $qb->getDQL());
-        $this->assertSame('%bar', $qb->getParameter('p0')->getValue());
+        $this->assertSame('bar%', $qb->getParameter('p0')->getValue());
     }
 
     public function testFilterStringLikeContains() : void
@@ -206,7 +206,7 @@ class QueryFilterTest extends TestCase
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_STR, $qf::MODE_LIKE|$qf::ENDS_WITH);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b LIKE :p0', $qb->getDQL());
-        $this->assertSame('bar%', $qb->getParameter('p0')->getValue());
+        $this->assertSame('%bar', $qb->getParameter('p0')->getValue());
     }
 
     public function testFilterDate() : void
