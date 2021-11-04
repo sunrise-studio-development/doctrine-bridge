@@ -458,11 +458,11 @@ final class QueryFilter
                 }
 
                 if ($mode & self::STARTS_WITH) {
-                    $value = '%' . $value;
+                    $value = $value . '%';
                 } elseif ($mode & self::CONTAINS) {
                     $value = '%' . $value . '%';
                 } elseif ($mode & self::ENDS_WITH) {
-                    $value = $value . '%';
+                    $value = '%' . $value;
                 }
 
                 $p = 'p' . $qb->getParameters()->count();
