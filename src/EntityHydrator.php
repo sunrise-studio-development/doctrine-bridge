@@ -37,6 +37,7 @@ use ReflectionUnionType;
  */
 use function array_key_exists;
 use function class_exists;
+use function ctype_digit;
 use function date_create;
 use function date_create_immutable;
 use function date_diff;
@@ -391,7 +392,7 @@ final class EntityHydrator
     private function resolveAssociation(string $targetEntity, $value) : ?object
     {
         if (is_int($value) || is_string($value)) {
-            return $this->entityManager->getReference($targetEntity, $value);
+            return $this->entityManager->getRepository($targetEntity)->find($value);
         }
 
         if (is_array($value)) {
@@ -571,6 +572,10 @@ final class EntityHydrator
         if ($value instanceof DateTime) {
             return $value;
         } elseif (is_string($value)) {
+            if (ctype_digit($value)) {
+                return date_create()->setTimestamp((int) $value) ?: null;
+            }
+
             return date_create($value) ?: null;
         } elseif (is_int($value)) {
             return date_create()->setTimestamp($value);
@@ -593,6 +598,10 @@ final class EntityHydrator
         if ($value instanceof DateTimeImmutable) {
             return $value;
         } elseif (is_string($value)) {
+            if (ctype_digit($value)) {
+                return date_create_immutable()->setTimestamp((int) $value) ?: null;
+            }
+
             return date_create_immutable($value) ?: null;
         } elseif (is_int($value)) {
             return date_create_immutable()->setTimestamp($value);
