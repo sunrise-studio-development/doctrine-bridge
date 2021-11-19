@@ -28,6 +28,8 @@ use function is_array;
 use function is_int;
 use function is_numeric;
 use function is_string;
+use function mb_strlen;
+use function mb_substr;
 use function strtr;
 use function trim;
 
@@ -101,18 +103,27 @@ final class QueryFilter
     public const ENDS_WITH = 16;
 
     /**
+     * @var int
+     */
+    public const MODE_ONE_OF = 32;
+
+    /**
+     * @var int
+     */
+    public const MODE_ALL_OF = 64;
+
+    /**
      * @var array<string, string|array<string, string>>
      */
     private $data;
 
     /**
-     * @var array<string, array<string, int|string|null>>
+     * @var array<string, array<string, array<string, int|string|null>>>
      *
-     * @psalm-var array<string, array{
-     *      column: string,
+     * @psalm-var array<string, array<string, array{
      *      type: int,
      *      mode: int|null,
-     * }>
+     * }>>
      */
     private $filterBy = [];
 
@@ -145,6 +156,16 @@ final class QueryFilter
      * @var int
      */
     private $maxLimit = 100;
+
+    /**
+     * @var int
+     */
+    private $maxArraySize = 100;
+
+    /**
+     * @var int
+     */
+    private $maxStringLength = 1000;
 
     /**
      * @OpenApi\ParameterQuery(
@@ -217,9 +238,8 @@ final class QueryFilter
      */
     public function allowFilterBy(string $key, string $column, int $type = self::TYPE_STR, ?int $mode = null) : void
     {
-        $this->filterBy[$key]['column'] = $column;
-        $this->filterBy[$key]['type'] = $type;
-        $this->filterBy[$key]['mode'] = $mode;
+        $this->filterBy[$key][$column]['type'] = $type;
+        $this->filterBy[$key][$column]['mode'] = $mode;
     }
 
     /**
@@ -270,6 +290,26 @@ final class QueryFilter
     }
 
     /**
+     * @param int $size
+     *
+     * @return void
+     */
+    public function maxArraySize(int $size) : void
+    {
+        $this->maxArraySize = $size;
+    }
+
+    /**
+     * @param int $length
+     *
+     * @return void
+     */
+    public function maxStringLength(int $length) : void
+    {
+        $this->maxStringLength = $length;
+    }
+
+    /**
      * Applies the filter to the given query builder
      *
      * @param QueryBuilder $qb
@@ -280,7 +320,9 @@ final class QueryFilter
     {
         $this->filter($qb);
         $this->sort($qb);
-        $this->slice($qb);
+
+        $qb->setMaxResults($this->getLimit());
+        $qb->setFirstResult($this->getOffset());
 
         return $qb;
     }
@@ -297,34 +339,57 @@ final class QueryFilter
                 continue;
             }
 
-            if ('null' === $this->data[$key]) {
-                $qb->andWhere($qb->expr()->isNull($filterBy['column']));
-                continue;
+            $exprs = [];
+            foreach ($filterBy as $column => $params) {
+                if ('null' === $this->data[$key]) {
+                    $exprs[] = $qb->expr()->isNull($column);
+                    continue;
+                }
+
+                if ('not-null' === $this->data[$key]) {
+                    $exprs[] = $qb->expr()->isNotNull($column);
+                    continue;
+                }
+
+                if (self::TYPE_BOOL === $params['type']) {
+                    $expr = $this->createExpressionForBooleanValue($qb, $column, $this->data[$key]);
+                    if (isset($expr)) {
+                        $exprs[] = $expr;
+                    }
+
+                    continue;
+                }
+
+                if (self::TYPE_DATE === $params['type']) {
+                    $expr = $this->createExpressionForDateValue($qb, $column, $this->data[$key]);
+                    if (isset($expr)) {
+                        $exprs[] = $expr;
+                    }
+
+                    continue;
+                }
+
+                if (self::TYPE_NUM === $params['type']) {
+                    $expr = $this->createExpressionForNumericValue($qb, $column, $this->data[$key]);
+                    if (isset($expr)) {
+                        $exprs[] = $expr;
+                    }
+
+                    continue;
+                }
+
+                if (self::TYPE_STR === $params['type']) {
+                    $expr = $this->createExpressionForStringValue($qb, $column, $params['mode'], $this->data[$key]);
+                    if (isset($expr)) {
+                        $exprs[] = $expr;
+                    }
+
+                    continue;
+                }
             }
 
-            if ('not-null' === $this->data[$key]) {
-                $qb->andWhere($qb->expr()->isNotNull($filterBy['column']));
-                continue;
-            }
-
-            if (self::TYPE_BOOL === $filterBy['type']) {
-                $this->filterByBooleanValue($qb, $filterBy['column'], $this->data[$key]);
-                continue;
-            }
-
-            if (self::TYPE_NUM === $filterBy['type']) {
-                $this->filterByNumericValue($qb, $filterBy['column'], $this->data[$key]);
-                continue;
-            }
-
-            if (self::TYPE_STR === $filterBy['type']) {
-                $this->filterByStringValue($qb, $filterBy['column'], $filterBy['mode'], $this->data[$key]);
-                continue;
-            }
-
-            if (self::TYPE_DATE === $filterBy['type']) {
-                $this->filterByDateValue($qb, $filterBy['column'], $this->data[$key]);
-                continue;
+            if (!empty($exprs)) {
+                $qb->andWhere($qb->expr()->orX(...$exprs));
             }
         }
     }
@@ -370,30 +435,28 @@ final class QueryFilter
 
     /**
      * @param QueryBuilder $qb
-     *
-     * @return void
-     */
-    private function slice(QueryBuilder $qb) : void
-    {
-        $qb->setMaxResults($this->getLimit());
-        $qb->setFirstResult($this->getOffset());
-    }
-
-    /**
-     * @param QueryBuilder $qb
      * @param string $column
      * @param mixed $value
      *
-     * @return void
+     * @return \Doctrine\ORM\Query\Expr\Comparison|null
      */
-    private function filterByBooleanValue(QueryBuilder $qb, string $column, $value) : void
+    private function createExpressionForBooleanValue(QueryBuilder $qb, string $column, $value)
     {
+        // an empty string equals the false...
+        // e.g. ?is_enabled=
+        if ('' === $value) {
+            return null;
+        }
+
         $value = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
         if (isset($value)) {
             $p = 'p' . $qb->getParameters()->count();
-            $qb->andWhere($qb->expr()->eq($column, ':' . $p));
             $qb->setParameter($p, $value);
+
+            return $qb->expr()->eq($column, ':' . $p);
         }
+
+        return null;
     }
 
     /**
@@ -401,35 +464,84 @@ final class QueryFilter
      * @param string $column
      * @param mixed $value
      *
-     * @return void
+     * @return \Doctrine\ORM\Query\Expr\Comparison|\Doctrine\ORM\Query\Expr\Andx|null
      */
-    private function filterByNumericValue(QueryBuilder $qb, string $column, $value) : void
+    private function createExpressionForDateValue(QueryBuilder $qb, string $column, $value)
+    {
+        // ?event[from]=1970-01-01&event[until]=2038-01-19 or
+        // ?event[from]=0&event[until]=2147472000
+        if (is_array($value)) {
+            $exprs = [];
+
+            if (isset($value['from'])) {
+                $from = $this->createDate($value['from']);
+                if (isset($from)) {
+                    $p = 'p' . $qb->getParameters()->count();
+                    $qb->setParameter($p, $from);
+                    $exprs[] = $qb->expr()->gte($column, ':' . $p);
+                }
+            }
+
+            if (isset($value['until'])) {
+                $until = $this->createDate($value['until']);
+                if (isset($until)) {
+                    $p = 'p' . $qb->getParameters()->count();
+                    $qb->setParameter($p, $until);
+                    $exprs[] = $qb->expr()->lte($column, ':' . $p);
+                }
+            }
+
+            return !empty($exprs) ? $qb->expr()->andX(...$exprs) : null;
+        }
+
+        $date = $this->createDate($value);
+        if (isset($date)) {
+            $p = 'p' . $qb->getParameters()->count();
+            $qb->setParameter($p, $date);
+
+            return $qb->expr()->eq($column, ':' . $p);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param QueryBuilder $qb
+     * @param string $column
+     * @param mixed $value
+     *
+     * @return \Doctrine\ORM\Query\Expr\Comparison|\Doctrine\ORM\Query\Expr\Andx|null
+     */
+    private function createExpressionForNumericValue(QueryBuilder $qb, string $column, $value)
     {
         // ?foo[min]=1&foo[max]=2
         if (is_array($value)) {
+            $exprs = [];
+
             if (isset($value['min']) && is_numeric($value['min'])) {
                 $p = 'p' . $qb->getParameters()->count();
-                $qb->andWhere($qb->expr()->gte($column, ':' . $p));
                 $qb->setParameter($p, is_string($value['min']) ? trim($value['min']) : $value['min']);
+                $exprs[] = $qb->expr()->gte($column, ':' . $p);
             }
 
             if (isset($value['max']) && is_numeric($value['max'])) {
                 $p = 'p' . $qb->getParameters()->count();
-                $qb->andWhere($qb->expr()->lte($column, ':' . $p));
                 $qb->setParameter($p, is_string($value['max']) ? trim($value['max']) : $value['max']);
+                $exprs[] = $qb->expr()->lte($column, ':' . $p);
             }
 
-            return;
+            return !empty($exprs) ? $qb->expr()->andX(...$exprs) : null;
         }
 
         // ?foo=1
         if (is_numeric($value)) {
             $p = 'p' . $qb->getParameters()->count();
-            $qb->andWhere($qb->expr()->eq($column, ':' . $p));
             $qb->setParameter($p, is_string($value) ? trim($value) : $value);
 
-            return;
+            return $qb->expr()->eq($column, ':' . $p);
         }
+
+        return null;
     }
 
     /**
@@ -438,81 +550,87 @@ final class QueryFilter
      * @param int|null $mode
      * @param mixed $value
      *
-     * @return void
+     * @return \Doctrine\ORM\Query\Expr\Comparison|\Doctrine\ORM\Query\Expr\Andx|\Doctrine\ORM\Query\Expr\Orx|null
      */
-    private function filterByStringValue(QueryBuilder $qb, string $column, ?int $mode, $value) : void
+    private function createExpressionForStringValue(QueryBuilder $qb, string $column, ?int $mode, $value)
     {
-        if (is_string($value)) {
-            if (null === $mode) {
-                $p = 'p' . $qb->getParameters()->count();
-                $qb->andWhere($qb->expr()->eq($column, ':' . $p));
-                $qb->setParameter($p, $value);
-
-                return;
-            }
-
-            if ($mode & self::MODE_LIKE) {
-                $value = addcslashes($value, '%_');
-                if ($mode & self::WILDCARDS) {
-                    $value = strtr($value, '*', '%');
+        if (is_array($value)) {
+            $i = 0;
+            $exprs = [];
+            foreach ($value as $v) {
+                if (++$i > $this->maxArraySize) {
+                    break;
+                } elseif (!is_string($v)) {
+                    continue;
                 }
 
-                if ($mode & self::STARTS_WITH) {
-                    $value = $value . '%';
-                } elseif ($mode & self::CONTAINS) {
-                    $value = '%' . $value . '%';
-                } elseif ($mode & self::ENDS_WITH) {
-                    $value = '%' . $value;
+                $expr = $this->createExpressionForString($qb, $column, $mode, $v);
+                if (isset($expr)) {
+                    $exprs[] = $expr;
                 }
-
-                $p = 'p' . $qb->getParameters()->count();
-                $qb->andWhere($qb->expr()->like($column, ':' . $p));
-                $qb->setParameter($p, $value);
-
-                return;
             }
+
+            if ($mode & self::MODE_ONE_OF) {
+                return !empty($exprs) ? $qb->expr()->orX(...$exprs) : null;
+            }
+
+            if ($mode & self::MODE_ALL_OF) {
+                return !empty($exprs) ? $qb->expr()->andX(...$exprs) : null;
+            }
+
+            return $exprs[0] ?? null;
         }
+
+        if (is_string($value)) {
+            return $this->createExpressionForString($qb, $column, $mode, $value);
+        }
+
+        return null;
     }
 
     /**
      * @param QueryBuilder $qb
      * @param string $column
-     * @param mixed $value
+     * @param int|null $mode
+     * @param string $value
      *
-     * @return void
+     * @return \Doctrine\ORM\Query\Expr\Comparison|null
      */
-    private function filterByDateValue(QueryBuilder $qb, string $column, $value) : void
+    private function createExpressionForString(QueryBuilder $qb, string $column, ?int $mode, string $value)
     {
-        // ?event[from]=1970-01-01&event[until]=2038-01-19 or
-        // ?event[from]=0&event[until]=2147472000
-        if (is_array($value)) {
-            if (isset($value['from'])) {
-                $from = $this->createDate($value['from']);
-                if (isset($from)) {
-                    $p = 'p' . $qb->getParameters()->count();
-                    $qb->andWhere($qb->expr()->gte($column, ':' . $p));
-                    $qb->setParameter($p, $from);
-                }
-            }
-
-            if (isset($value['until'])) {
-                $until = $this->createDate($value['until']);
-                if (isset($until)) {
-                    $p = 'p' . $qb->getParameters()->count();
-                    $qb->andWhere($qb->expr()->lte($column, ':' . $p));
-                    $qb->setParameter($p, $until);
-                }
-            }
-
-            return;
+        // e.g. ?foo=
+        if ('' === $value) {
+            return null;
         }
 
-        $until = $this->createDate($value);
-        if (isset($until)) {
+        if (mb_strlen($value) > $this->maxStringLength) {
+            $value = mb_substr($value, 0, $this->maxStringLength);
+        }
+
+        if ($mode & self::MODE_LIKE) {
+            $value = addcslashes($value, '%_');
+            if ($mode & self::WILDCARDS) {
+                $value = strtr($value, '*', '%');
+            }
+
+            if ($mode & self::STARTS_WITH) {
+                $value = $value . '%';
+            } elseif ($mode & self::CONTAINS) {
+                $value = '%' . $value . '%';
+            } elseif ($mode & self::ENDS_WITH) {
+                $value = '%' . $value;
+            }
+
             $p = 'p' . $qb->getParameters()->count();
-            $qb->andWhere($qb->expr()->eq($column, ':' . $p));
-            $qb->setParameter($p, $until);
+            $qb->setParameter($p, $value);
+
+            return $qb->expr()->like($column, ':' . $p);
         }
+
+        $p = 'p' . $qb->getParameters()->count();
+        $qb->setParameter($p, $value);
+
+        return $qb->expr()->eq($column, ':' . $p);
     }
 
     /**
@@ -590,6 +708,12 @@ final class QueryFilter
      */
     private function createDate($value) : ?DateTimeInterface
     {
+        // an empty string equals the current time...
+        // e.g. ?created_at=
+        if ('' === $value) {
+            return null;
+        }
+
         if (is_string($value)) {
             if (ctype_digit($value)) {
                 return date_create()->setTimestamp((int) $value) ?: null;
