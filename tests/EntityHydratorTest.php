@@ -183,6 +183,7 @@ class EntityHydratorTest extends TestCase
         return [
             [new \DateTimeImmutable('2010-01-01')],
             ['2010-01-01'],
+            ['1262304000'],
             [1262304000],
         ];
     }
@@ -209,6 +210,7 @@ class EntityHydratorTest extends TestCase
         return [
             [new \DateTime('2010-01-01')],
             ['2010-01-01'],
+            ['1262304000'],
             [1262304000],
         ];
     }
