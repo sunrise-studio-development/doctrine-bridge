@@ -440,6 +440,17 @@ class QueryFilterTest extends TestCase
         $this->assertSame('baz', $qb->getParameter('p1')->getValue());
     }
 
+    public function testFilterStringWithEmptyArray() : void
+    {
+        $em = $this->getEntityManagerRegistry()->getManager();
+
+        $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
+        $qf = new QueryFilter(['foo' => []]);
+        $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_STR, $qf::MODE_ONE_OF);
+        $qf->apply($qb);
+        $this->assertSame('SELECT a FROM A a', $qb->getDQL());
+    }
+
     public function testFilterStringWithArrayThatContainsEmptyString() : void
     {
         $em = $this->getEntityManagerRegistry()->getManager();
