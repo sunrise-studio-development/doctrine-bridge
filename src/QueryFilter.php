@@ -21,6 +21,8 @@ use Doctrine\ORM\QueryBuilder;
  * Import functions
  */
 use function addcslashes;
+use function array_slice;
+use function count;
 use function ctype_digit;
 use function date_create;
 use function filter_var;
@@ -30,6 +32,7 @@ use function is_numeric;
 use function is_string;
 use function mb_strlen;
 use function mb_substr;
+use function reset;
 use function strtr;
 use function trim;
 
@@ -555,30 +558,29 @@ final class QueryFilter
     private function createExpressionForStringValue(QueryBuilder $qb, string $column, ?int $mode, $value)
     {
         if (is_array($value)) {
-            $i = 0;
-            $exprs = [];
-            foreach ($value as $v) {
-                if (++$i > $this->maxArraySize) {
-                    break;
-                } elseif (!is_string($v)) {
-                    continue;
+            if (($mode & self::MODE_ONE_OF) || ($mode & self::MODE_ALL_OF)) {
+                if (count($value) > $this->maxArraySize) {
+                    $value = array_slice($value, 0, $this->maxArraySize);
                 }
 
-                $expr = $this->createExpressionForString($qb, $column, $mode, $v);
-                if (isset($expr)) {
-                    $exprs[] = $expr;
+                $exprs = [];
+                foreach ($value as $item) {
+                    if (is_string($item)) {
+                        $expr = $this->createExpressionForString($qb, $column, $mode, $item);
+                        if (isset($expr)) {
+                            $exprs[] = $expr;
+                        }
+                    }
                 }
+
+                if (empty($exprs)) {
+                    return null;
+                }
+
+                return ($mode & self::MODE_ONE_OF) ? $qb->expr()->orX(...$exprs) : $qb->expr()->andX(...$exprs);
             }
 
-            if ($mode & self::MODE_ONE_OF) {
-                return !empty($exprs) ? $qb->expr()->orX(...$exprs) : null;
-            }
-
-            if ($mode & self::MODE_ALL_OF) {
-                return !empty($exprs) ? $qb->expr()->andX(...$exprs) : null;
-            }
-
-            return $exprs[0] ?? null;
+            $value = reset($value);
         }
 
         if (is_string($value)) {
