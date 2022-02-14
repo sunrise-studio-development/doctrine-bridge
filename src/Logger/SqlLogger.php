@@ -49,6 +49,16 @@ final class SqlLogger implements DoctrineLoggerInterface
     }
 
     /**
+     * Returns the assigned PSR-logger
+     *
+     * @return PsrLoggerInterface
+     */
+    public function getPsrLogger() : PsrLoggerInterface
+    {
+        return $this->logger;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function startQuery($sql, ?array $params = null, ?array $types = null) : void
@@ -66,11 +76,14 @@ final class SqlLogger implements DoctrineLoggerInterface
      */
     public function stopQuery() : void
     {
-        $query = array_pop($this->queries);
+        if (empty($this->queries)) {
+            return;
+        }
 
+        $query = array_pop($this->queries);
         $elapsed = (microtime(true) - $query['ts']) * 1000;
 
-        $this->logger->debug(sprintf('[%2.3fµ] %s', $elapsed, $query['sql']), [
+        $this->logger->debug(sprintf('[%2.3fµs] %s', $elapsed, $query['sql']), [
             'params' => $query['params'],
             'types' => $query['types'],
         ]);

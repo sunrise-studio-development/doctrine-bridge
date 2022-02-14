@@ -17,6 +17,7 @@ namespace Sunrise\Bridge\Doctrine;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Psr\Log\LoggerInterface;
 
 /**
  * ConnectionFactory
@@ -57,8 +58,13 @@ final class ConnectionFactory
      */
     public function createConnection(array $parameters) : Connection
     {
-        $parameters += self::DEFAULT_PARAMS;
+        if (isset($parameters['sql_logger'])) {
+            if ($parameters['sql_logger'] instanceof LoggerInterface) {
+                $parameters['sql_logger'] = new Logger\SqlLogger($parameters['sql_logger']);
+            }
+        }
 
+        $parameters += self::DEFAULT_PARAMS;
         $configuration = new Configuration();
 
         foreach (self::CONFIG_SETTER_MAP as $parameter => $setter) {
