@@ -30,6 +30,8 @@ class SqlLoggerTest extends TestCase
         $sqlLogger->startQuery('SELECT 1', ['foo'], ['bar']);
         $sqlLogger->stopQuery();
 
+        $sqlLogger->stopQuery(); // doing nothing...
+
         $this->assertCount(1, $log);
     }
 }

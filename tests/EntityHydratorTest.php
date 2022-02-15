@@ -239,6 +239,7 @@ class EntityHydratorTest extends TestCase
             [['start' => '1970-01-01', 'end' => '2038-01-19']],
             [['start' => 0, 'end' => 2147472000]],
             ['1970-01-01 - 2038-01-19'],
+            ['P68Y'],
         ];
     }
 
@@ -744,8 +745,11 @@ class EntityHydratorTest extends TestCase
         $di = new \DateInterval('PT1S');
         $post = new Fixtures\Entity\Common\Post();
         $post->setSomeInterval($di);
-        $hydrator->hydrate($post, ['someInterval' => 0.0]);
 
+        $hydrator->hydrate($post, ['someInterval' => 0.0]);
+        $this->assertSame($di, $post->getSomeInterval());
+
+        $hydrator->hydrate($post, ['someInterval' => 'P1X']);
         $this->assertSame($di, $post->getSomeInterval());
     }
 

@@ -33,7 +33,7 @@ final class SqlLogger implements DoctrineLoggerInterface
     /**
      * @var PsrLoggerInterface
      */
-    private $logger;
+    private $psrLogger;
 
     /**
      * @var array
@@ -41,11 +41,21 @@ final class SqlLogger implements DoctrineLoggerInterface
     private $queries = [];
 
     /**
-     * @param PsrLoggerInterface $logger
+     * @param PsrLoggerInterface $psrLogger
      */
-    public function __construct(PsrLoggerInterface $logger)
+    public function __construct(PsrLoggerInterface $psrLogger)
     {
-        $this->logger = $logger;
+        $this->psrLogger = $psrLogger;
+    }
+
+    /**
+     * Returns the assigned PSR-logger
+     *
+     * @return PsrLoggerInterface
+     */
+    public function getPsrLogger() : PsrLoggerInterface
+    {
+        return $this->psrLogger;
     }
 
     /**
@@ -66,11 +76,15 @@ final class SqlLogger implements DoctrineLoggerInterface
      */
     public function stopQuery() : void
     {
+        if (empty($this->queries)) {
+            return;
+        }
+
         $query = array_pop($this->queries);
-
         $elapsed = (microtime(true) - $query['ts']) * 1000;
+        $text = sprintf('[%2.3fµs] %s', $elapsed, $query['sql']);
 
-        $this->logger->debug(sprintf('[%2.3fµ] %s', $elapsed, $query['sql']), [
+        $this->psrLogger->debug($text, [
             'params' => $query['params'],
             'types' => $query['types'],
         ]);
