@@ -657,6 +657,14 @@ final class EntityHydrator
             }
         }
 
+        // support for ISO 8601...
+        if (is_string($value)) {
+            try {
+                return new DateInterval($value);
+            } catch (\Exception $e) {
+            }
+        }
+
         return null;
     }
 }
