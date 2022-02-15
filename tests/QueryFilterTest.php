@@ -43,14 +43,14 @@ class QueryFilterTest extends TestCase
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_BOOL);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b = :p0', $qb->getDQL());
-        $this->assertSame(true, $qb->getParameter('p0')->getValue());
+        $this->assertTrue($qb->getParameter('p0')->getValue());
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
         $qf = new QueryFilter(['foo' => 'no']);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_BOOL);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a WHERE a.b = :p0', $qb->getDQL());
-        $this->assertSame(false, $qb->getParameter('p0')->getValue());
+        $this->assertFalse($qb->getParameter('p0')->getValue());
     }
 
     public function testFilterBooleanWithEmptyString() : void
@@ -107,14 +107,14 @@ class QueryFilterTest extends TestCase
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_DATE);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a', $qb->getDQL());
-        $this->assertSame(null, $qb->getParameter('p0'));
+        $this->assertNull($qb->getParameter('p0'));
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
         $qf = new QueryFilter(['foo' => new \stdClass /* date invalid type */]);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_DATE);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a', $qb->getDQL());
-        $this->assertSame(null, $qb->getParameter('p0'));
+        $this->assertNull($qb->getParameter('p0'));
     }
 
     public function testFilterDateMin() : void
@@ -240,21 +240,21 @@ class QueryFilterTest extends TestCase
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_NUM);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a', $qb->getDQL());
-        $this->assertSame(null, $qb->getParameter('p0'));
+        $this->assertNull($qb->getParameter('p0'));
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
         $qf = new QueryFilter(['foo' => 'not number']);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_NUM);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a', $qb->getDQL());
-        $this->assertSame(null, $qb->getParameter('p0'));
+        $this->assertNull($qb->getParameter('p0'));
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
         $qf = new QueryFilter(['foo' => new \stdClass /* invalid number type */]);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_NUM);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a', $qb->getDQL());
-        $this->assertSame(null, $qb->getParameter('p0'));
+        $this->assertNull($qb->getParameter('p0'));
     }
 
     public function testFilterNumericMin() : void
@@ -310,14 +310,14 @@ class QueryFilterTest extends TestCase
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_STR);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a', $qb->getDQL());
-        $this->assertSame(null, $qb->getParameter('p0'));
+        $this->assertNull($qb->getParameter('p0'));
 
         $qb = (new QueryBuilder($em))->select('a')->from('A', 'a');
         $qf = new QueryFilter(['foo' => new \stdClass /* invalid string type */]);
         $qf->allowFilterBy('foo', 'a.b', $qf::TYPE_STR);
         $qf->apply($qb);
         $this->assertSame('SELECT a FROM A a', $qb->getDQL());
-        $this->assertSame(null, $qb->getParameter('p0'));
+        $this->assertNull($qb->getParameter('p0'));
     }
 
     public function testFilterStringWithEmptyString() : void
