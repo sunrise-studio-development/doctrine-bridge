@@ -14,5 +14,8 @@
     </projectFiles>
 
     <issueHandlers>
+        <InaccessibleProperty errorLevel="suppress" />
+        <MixedAssignment errorLevel="suppress" />
+        <UnnecessaryVarAnnotation errorLevel="suppress" />
     </issueHandlers>
 </psalm>

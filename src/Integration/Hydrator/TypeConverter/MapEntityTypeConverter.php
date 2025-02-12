@@ -32,31 +32,31 @@ use function class_exists;
 use function is_string;
 use function trim;
 
-final class MapEntityTypeConverter implements
-    TypeConverterInterface,
+final readonly class MapEntityTypeConverter implements
+    AnnotationReaderAwareInterface,
     HydratorAwareInterface,
-    AnnotationReaderAwareInterface
+    TypeConverterInterface
 {
-    public const string ERROR_CODE = '0a430d9b-b266-4618-b4c8-e1221343b900';
-    public const string ERROR_MESSAGE = 'The entity was not found.';
+    public const ERROR_CODE = '0a430d9b-b266-4618-b4c8-e1221343b900';
+    public const ERROR_MESSAGE = 'The entity was not found.';
 
-    private HydratorInterface $hydrator;
     private AnnotationReaderInterface $annotationReader;
+    private HydratorInterface $hydrator;
 
     public function __construct(
-        private readonly EntityManagerRegistryInterface $entityManagerRegistry,
-        private readonly EntityManagerNameInterface $defaultEntityManagerName,
+        private EntityManagerRegistryInterface $entityManagerRegistry,
+        private ?EntityManagerNameInterface $defaultEntityManagerName = null,
     ) {
-    }
-
-    public function setHydrator(HydratorInterface $hydrator): void
-    {
-        $this->hydrator = $hydrator;
     }
 
     public function setAnnotationReader(AnnotationReaderInterface $annotationReader): void
     {
         $this->annotationReader = $annotationReader;
+    }
+
+    public function setHydrator(HydratorInterface $hydrator): void
+    {
+        $this->hydrator = $hydrator;
     }
 
     /**
@@ -86,23 +86,15 @@ final class MapEntityTypeConverter implements
             $value = $this->hydrator->castValue($value, $castType, $path, $context);
         }
 
-        // As part of the support for HTML forms and other untyped data sources,
-        // empty strings should not be used to resolve entities;
-        // instead, they should be considered as NULL.
+        // To support HTML forms and other untyped data sources,
+        // empty strings should be treated as NULL rather than being resolved as entities.
         if (is_string($value) && ($value = trim($value)) === '') {
-            return $type->allowsNull() ? yield null : throw InvalidValueException::mustNotBeEmpty($path);
+            return $type->allowsNull() ? yield : throw InvalidValueException::mustNotBeEmpty($path);
         }
 
-        $entityManagerName = $mapEntity->em ?? $this->defaultEntityManagerName;
-        $entityManager = $this->entityManagerRegistry->getEntityManager($entityManagerName);
-        $entityMetadata = $entityManager->getClassMetadata($entityName);
-        $entityRepository = $entityManager->getRepository($entityName);
-
-        $field = $mapEntity->field ?? $entityMetadata->getSingleIdentifierFieldName();
-        /** @var array<string, mixed> $criteria */
-        $criteria = [$field => $value, ...$mapEntity->criteria];
-
-        $entity = $entityRepository->findOneBy($criteria);
+        $em = $this->entityManagerRegistry->getEntityManager($mapEntity->em ?? $this->defaultEntityManagerName);
+        $field = $mapEntity->field ?? $em->getClassMetadata($entityName)->getSingleIdentifierFieldName();
+        $entity = $em->getRepository($entityName)->findOneBy([$field => $value, ...$mapEntity->criteria]);
 
         if ($entity === null) {
             throw new InvalidValueException(
