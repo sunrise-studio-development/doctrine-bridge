@@ -45,14 +45,18 @@ final readonly class DoctrineRequestTerminationMiddleware implements MiddlewareI
     private function flushEntityManagers(): void
     {
         foreach ($this->flushableEntityManagerNames as $entityManagerName) {
-            $this->entityManagerRegistry->hasEntityManager($entityManagerName)?->flush();
+            if ($this->entityManagerRegistry->hasEntityManager($entityManagerName)) {
+                $this->entityManagerRegistry->getEntityManager($entityManagerName)->flush();
+            }
         }
     }
 
     private function clearEntityManagers(): void
     {
         foreach ($this->clearableEntityManagerNames as $entityManagerName) {
-            $this->entityManagerRegistry->hasEntityManager($entityManagerName)?->clear();
+            if ($this->entityManagerRegistry->hasEntityManager($entityManagerName)) {
+                $this->entityManagerRegistry->getEntityManager($entityManagerName)->clear();
+            }
         }
     }
 }
