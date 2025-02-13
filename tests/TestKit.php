@@ -17,7 +17,14 @@ use function is_int;
  */
 trait TestKit
 {
-    public function mockEntityManagerName(
+    protected static function createAnonymousClass(): object
+    {
+        return new class
+        {
+        };
+    }
+
+    protected function mockEntityManagerName(
         string $name,
         null|bool|int|InvocationOrder $calls = null,
     ): EntityManagerNameInterface&MockObject {

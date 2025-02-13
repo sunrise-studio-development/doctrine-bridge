@@ -96,7 +96,6 @@ final class UniqueEntityValidator extends ConstraintValidator
             return;
         }
 
-        // corner case...
         if (count($entities) > 1) {
             $this->logger?->warning('#[UniqueEntity] detected a uniqueness violation in the database.', [
                 'entity' => $value::class,

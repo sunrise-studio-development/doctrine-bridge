@@ -86,17 +86,17 @@ final class UniqueEntityValidatorTest extends TestCase
 
     public function testInitializeAssociation(): void
     {
-        $value = new stdClass();
-        $foo = new stdClass();
+        $value = self::createAnonymousClass();
+        $foo = self::createAnonymousClass();
         $constraint = new UniqueEntity(fields: ['foo']);
         $constraintValidator = new UniqueEntityValidator($this->mockedEntityManagerRegistry);
         $this->mockedEntityManagerRegistry->expects($this->once())->method('getEntityManager')->with(null)->willReturn($this->mockedEntityManager);
-        $this->mockedEntityManager->expects($this->once())->method('getClassMetadata')->with(stdClass::class)->willReturn($this->mockedEntityMetadata);
+        $this->mockedEntityManager->expects($this->once())->method('getClassMetadata')->with($value::class)->willReturn($this->mockedEntityMetadata);
         $this->mockedEntityMetadata->expects($this->once())->method('hasField')->with('foo')->willReturn(false);
         $this->mockedEntityMetadata->expects($this->exactly(2))->method('hasAssociation')->with('foo')->willReturn(true);
         $this->mockedEntityMetadata->expects($this->once())->method('getFieldValue')->with($value, 'foo')->willReturn($foo);
         $this->mockedEntityManager->expects($this->once())->method('initializeObject')->with($foo);
-        $this->mockedEntityManager->expects($this->once())->method('getRepository')->with(stdClass::class)->willReturn($this->mockedEntityRepository);
+        $this->mockedEntityManager->expects($this->once())->method('getRepository')->with($value::class)->willReturn($this->mockedEntityRepository);
         $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => $foo])->willReturn([]);
         $constraintValidator->validate($value, $constraint);
     }
