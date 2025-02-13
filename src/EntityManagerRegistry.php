@@ -1,237 +1,103 @@
-<?php declare(strict_types=1);
+<?php
 
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Fenric <anatoly@fenric.ru>
- * @copyright Copyright (c) 2020, Anatoly Fenric
- * @license https://github.com/sunrise-php/doctrine-bridge/blob/master/LICENSE
- * @link https://github.com/sunrise-php/doctrine-bridge
+ * @author Anatoly Nekhay <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
+ * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
+
+declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
-/**
- * Import classes
- */
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\ORMException;
-use Doctrine\ORM\Proxy\Proxy;
-use Doctrine\Persistence\AbstractManagerRegistry as AbstractEntityManagerRegistry;
-use Doctrine\Persistence\ManagerRegistry as EntityManagerRegistryInterface;
-use Closure;
-use InvalidArgumentException;
+use Psr\Log\LoggerInterface;
+use Sunrise\Bridge\Doctrine\Exception\EntityManagerNotConfiguredException;
+use Throwable;
 
-/**
- * Import functions
- */
-use function array_merge;
-use function key;
-use function reset;
-use function sprintf;
-
-/**
- * EntityManagerRegistry
- */
-final class EntityManagerRegistry extends AbstractEntityManagerRegistry implements EntityManagerRegistryInterface
+final class EntityManagerRegistry implements EntityManagerRegistryInterface
 {
+    /**
+     * @var array<string, EntityManagerInterface>
+     */
+    private array $entityManagers = [];
 
     /**
-     * @var ConnectionFactory
+     * @var array<string, EntityManagerParametersInterface>
      */
-    private $connectionFactory;
+    private array $entityManagerParametersMap = [];
 
     /**
-     * @var EntityManagerFactory
+     * @param array<array-key, EntityManagerParametersInterface> $entityManagerParametersList
      */
-    private $entityManagerFactory;
+    public function __construct(
+        private readonly EntityManagerFactoryInterface $entityManagerFactory,
+        array $entityManagerParametersList,
+        private readonly EntityManagerNameInterface $defaultEntityManagerName,
+        private readonly ?LoggerInterface $logger = null,
+    ) {
+        foreach ($entityManagerParametersList as $entityManagerParameters) {
+            $entityManagerNameKey = $entityManagerParameters->getName()->getValue();
+            $this->entityManagerParametersMap[$entityManagerNameKey] = $entityManagerParameters;
+        }
+    }
 
-    /**
-     * @var EntityManagerMaintainer
-     */
-    private $entityManagerMaintainer;
-
-    /**
-     * @var array<string, mixed>
-     */
-    private $serviceParameters = [];
-
-    /**
-     * @var Closure[]
-     */
-    private $serviceFactories = [];
-
-    /**
-     * @var Connection[]|EntityManagerInterface[]
-     */
-    private $services = [];
-
-    /**
-     * @var array<string, mixed>
-     */
-    private $migrationsParameters = [];
-
-    /**
-     * Initializes the registry
-     *
-     * @param array<string, mixed> $configuration
-     * @param string|null $registryName
-     */
-    public function __construct(array $configuration, ?string $registryName = null)
+    public function hasEntityManager(?EntityManagerNameInterface $entityManagerName = null): bool
     {
-        $this->connectionFactory = new ConnectionFactory();
-        $this->entityManagerFactory = new EntityManagerFactory();
-        $this->entityManagerMaintainer = new EntityManagerMaintainer($this);
+        $entityManagerName ??= $this->defaultEntityManagerName;
+        $entityManagerKey = $entityManagerName->getValue();
 
-        $connectionNames = [];
-        $entityManagerNames = [];
+        return isset($this->entityManagers[$entityManagerKey]);
+    }
 
-        foreach ($configuration as $serviceName => $serviceParameters) {
-            $serviceParameters = (array) $serviceParameters;
+    /**
+     * @inheritDoc
+     */
+    public function getEntityManager(?EntityManagerNameInterface $entityManagerName = null): EntityManagerInterface
+    {
+        $entityManagerName ??= $this->defaultEntityManagerName;
+        $entityManagerKey = $entityManagerName->getValue();
 
-            if (isset($serviceParameters['dbal'])) {
-                $connectionNames[$serviceName] = $serviceName . '.conn';
-                $this->serviceParameters[$connectionNames[$serviceName]] = (array) $serviceParameters['dbal'];
-                $this->serviceFactories[$connectionNames[$serviceName]] = $this->createConnectionLazyServiceFactory();
-            }
+        $this->checkEntityManagerHealth($entityManagerKey);
 
-            if (isset($serviceParameters['orm'])) {
-                $entityManagerNames[$serviceName] = $serviceName;
-                $this->serviceParameters[$entityManagerNames[$serviceName]] = (array) $serviceParameters['orm'];
-                $this->serviceFactories[$entityManagerNames[$serviceName]] = $this->createManagerLazyServiceFactory();
-            }
+        return $this->entityManagers[$entityManagerKey] ??= $this->entityManagerFactory
+            ->createEntityManagerFromParameters(
+                $this->entityManagerParametersMap[$entityManagerKey]
+                    ?? throw new EntityManagerNotConfiguredException($entityManagerName)
+            );
+    }
 
-            if (isset($serviceParameters['migrations'])) {
-                $this->migrationsParameters = (array) $serviceParameters['migrations'];
-            }
-
-            if (isset($serviceParameters['types'])) {
-                foreach ($serviceParameters['types'] as $typeName => $className) {
-                    Type::hasType($typeName) ?
-                    Type::overrideType($typeName, $className) :
-                    Type::addType($typeName, $className);
-                }
-            }
+    private function checkEntityManagerHealth(string $entityManagerKey): void
+    {
+        if (!isset($this->entityManagers[$entityManagerKey])) {
+            return;
         }
 
-        reset($connectionNames);
-        reset($entityManagerNames);
+        if (!$this->entityManagers[$entityManagerKey]->isOpen()) {
+            unset($this->entityManagers[$entityManagerKey]);
 
-        parent::__construct(
-            $registryName ?? 'ORM',
-            $connectionNames,
-            $entityManagerNames,
-            key($connectionNames) ?? 'default',
-            key($entityManagerNames) ?? 'default',
-            Proxy::class
-        );
-    }
+            $this->logger?->warning('A closed entity manager was detected and shut down.', [
+                'em' => $entityManagerKey,
+            ]);
 
-    /**
-     * @return \Symfony\Component\Console\Command\Command[]
-     */
-    public function getCommands() : array
-    {
-        $provider = new CommandProvider($this);
+            return;
+        }
 
-        return array_merge(
-            $provider->getDbalCommands(),
-            $provider->getOrmCommands(),
-            $provider->getMigrationsCommands($this->migrationsParameters)
-        );
-    }
-
-    /**
-     * @param string|null $managerName
-     *
-     * @return EntityHydrator
-     */
-    public function getHydrator(?string $managerName = null) : EntityHydrator
-    {
-        return new EntityHydrator($this->getManager($managerName));
-    }
-
-    /**
-     * @return EntityManagerMaintainer
-     */
-    public function getMaintainer() : EntityManagerMaintainer
-    {
-        return $this->entityManagerMaintainer;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getAliasNamespace($alias)
-    {
-        foreach ($this->getManagers() as $manager) {
+        $connection = $this->entityManagers[$entityManagerKey]->getConnection();
+        if ($connection->isConnected()) {
             try {
-                /** @var \Doctrine\ORM\EntityManager $manager */
+                $connection->executeQuery($connection->getDatabasePlatform()->getDummySelectSQL());
+            } catch (Throwable $e) {
+                $connection->close();
 
-                return $manager->getConfiguration()->getEntityNamespace($alias);
-            } catch (ORMException $e) {
+                $this->logger?->warning('An unstable database connection was detected and closed.', [
+                    'em' => $entityManagerKey,
+                    'error' => $e,
+                ]);
             }
         }
-
-        throw ORMException::unknownEntityNamespace($alias);
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @throws InvalidArgumentException
-     */
-    protected function getService($name)
-    {
-        if (!isset($this->services[$name])) {
-            // this case is controlled by the parent...
-            if (!isset($this->serviceFactories[$name])) {
-                // @codeCoverageIgnoreStart
-                throw new InvalidArgumentException(sprintf(
-                    'No service found for the %s name.',
-                    $name
-                ));
-                // @codeCoverageIgnoreEnd
-            }
-
-            $this->services[$name] = ($this->serviceFactories[$name])($this, $name);
-        }
-
-        return $this->services[$name];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function resetService($name)
-    {
-        unset($this->services[$name]);
-    }
-
-    /**
-     * @return Closure
-     */
-    private function createConnectionLazyServiceFactory() : Closure
-    {
-        return static function (self $self, string $serviceName) : Connection {
-            return $self->connectionFactory->createConnection(
-                $self->serviceParameters[$serviceName] ?? []
-            );
-        };
-    }
-
-    /**
-     * @return Closure
-     */
-    private function createManagerLazyServiceFactory() : Closure
-    {
-        return static function (self $self, string $serviceName) : EntityManagerInterface {
-            return $self->entityManagerFactory->createEntityManager(
-                $self->getConnection($serviceName),
-                $self->serviceParameters[$serviceName] ?? []
-            );
-        };
     }
 }

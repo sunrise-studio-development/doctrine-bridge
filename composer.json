@@ -1,57 +1,65 @@
 {
-    "name": "sunrise/doctrine-bridge",
-    "homepage": "https://github.com/sunrise-php/doctrine-bridge",
-    "description": "Sunrise // Bridge to Doctrine for PHP 7.2+",
-    "license": "MIT",
-    "keywords": [
-        "arus",
-        "fenric",
-        "sunrise",
-        "doctrine",
-        "php7",
-        "php8",
-        "bridge",
-        "doctrine"
-    ],
-    "authors": [
-        {
-            "name": "Anatoly Fenric",
-            "email": "afenric@gmail.com",
-            "homepage": "https://github.com/fenric"
-        }
-    ],
-    "require": {
-        "php": "^7.2|^8.0",
-        "symfony/string": "^5.1"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^8.5|^9.5",
-        "sunrise/coding-standard": "1.0.0",
-        "doctrine/annotations": "~1.13.0",
-        "doctrine/dbal": "~2.13.0",
-        "doctrine/orm": "~2.10.0",
-        "doctrine/migrations": "~3.2.0",
-        "symfony/cache": "~5.3.0",
-        "symfony/validator": "~5.3.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Sunrise\\Bridge\\Doctrine\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Sunrise\\Bridge\\Doctrine\\Tests\\Fixtures\\": "tests/fixtures/"
-        }
-    },
-    "scripts": {
-        "test": [
-            "phpcs",
-            "XDEBUG_MODE=coverage phpunit --coverage-text --colors=always"
-        ],
-        "build": [
-            "phpdoc -d src/ -t phpdoc/",
-            "XDEBUG_MODE=coverage phpunit --coverage-html coverage/"
-        ]
+  "name": "sunrise-studio/doctrine-bridge",
+  "homepage": "https://github.com/sunrise-studio-development/doctrine-bridge",
+  "description": "Bridge to Doctrine for PHP 8.2+ with integration with the Router, Hydrator, and Validator.",
+  "license": "MIT",
+  "keywords": [
+    "fenric",
+    "sunrise",
+    "bridge",
+    "doctrine"
+  ],
+  "authors": [
+    {
+      "name": "Anatoly Nekhay",
+      "email": "afenric@gmail.com",
+      "homepage": "https://github.com/fenric"
     }
+  ],
+  "require": {
+    "php": ">=8.2",
+    "doctrine/orm": "^3.3",
+    "psr/cache": "^1.0 || ^2.0 || ^3.0",
+    "psr/log": "^1.0 || ^2.0 || ^3.0"
+  },
+  "require-dev": {
+    "php-di/php-di": "^7.0",
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^11.5",
+    "squizlabs/php_codesniffer": "^3.11",
+    "sunrise/http-router": "^3.0@RC",
+    "sunrise/hydrator": "^3.14",
+    "symfony/cache": "^7.2",
+    "symfony/validator": "^7.2",
+    "vimeo/psalm": "^6.5"
+  },
+  "conflict": {
+    "sunrise/doctrine-bridge": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Sunrise\\Bridge\\Doctrine\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Sunrise\\Bridge\\Doctrine\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "phpcs": "@php phpcs --colors",
+    "psalm": "@php psalm --no-cache",
+    "phpstan": "@php phpstan analyse src --configuration=phpstan.neon.php --level=9 --memory-limit=-1",
+    "phpunit": "@php phpunit --colors=always",
+    "test": [
+      "@phpcs",
+      "@psalm",
+      "@phpstan",
+      "@phpunit"
+    ]
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "RC"
 }
