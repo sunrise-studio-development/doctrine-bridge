@@ -16,6 +16,7 @@ namespace Sunrise\Bridge\Doctrine;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use SensitiveParameter;
 
 final readonly class EntityManagerParameters implements EntityManagerParametersInterface
@@ -34,6 +35,7 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
         private CacheItemPoolInterface $queryCache,
         private CacheItemPoolInterface $resultCache,
         private NamingStrategy $namingStrategy,
+        private ?LoggerInterface $logger,
     ) {
     }
 
@@ -91,5 +93,10 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
     public function getNamingStrategy(): NamingStrategy
     {
         return $this->namingStrategy;
+    }
+
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->logger;
     }
 }

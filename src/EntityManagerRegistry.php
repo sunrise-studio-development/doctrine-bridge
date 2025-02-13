@@ -37,7 +37,7 @@ final class EntityManagerRegistry implements EntityManagerRegistryInterface
         private readonly EntityManagerFactoryInterface $entityManagerFactory,
         array $entityManagerParametersList,
         private readonly EntityManagerNameInterface $defaultEntityManagerName,
-        private readonly ?LoggerInterface $logger,
+        private readonly ?LoggerInterface $logger = null,
     ) {
         foreach ($entityManagerParametersList as $entityManagerParameters) {
             $entityManagerNameKey = $entityManagerParameters->getName()->getValue();

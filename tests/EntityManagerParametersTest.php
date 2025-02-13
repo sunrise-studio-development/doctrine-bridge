@@ -7,6 +7,7 @@ namespace Sunrise\Bridge\Doctrine\Tests;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use SensitiveParameter;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
@@ -21,6 +22,7 @@ final class EntityManagerParametersTest extends TestCase
         $queryCache = $this->createMock(CacheItemPoolInterface::class);
         $resultCache = $this->createMock(CacheItemPoolInterface::class);
         $namingStrategy = $this->createMock(NamingStrategy::class);
+        $logger = $this->createMock(LoggerInterface::class);
 
         $parameters = new EntityManagerParameters(
             name: $name,
@@ -33,6 +35,7 @@ final class EntityManagerParametersTest extends TestCase
             queryCache: $queryCache,
             resultCache: $resultCache,
             namingStrategy: $namingStrategy,
+            logger: $logger,
         );
 
         self::assertSame($name, $parameters->getName());
@@ -45,6 +48,7 @@ final class EntityManagerParametersTest extends TestCase
         self::assertSame($queryCache, $parameters->getQueryCache());
         self::assertSame($resultCache, $parameters->getResultCache());
         self::assertSame($namingStrategy, $parameters->getNamingStrategy());
+        self::assertSame($logger, $parameters->getLogger());
     }
 
     public function testSensitiveParameters(): void

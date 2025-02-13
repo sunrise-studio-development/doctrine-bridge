@@ -21,12 +21,15 @@ return [
     'doctrine.logger' => null,
     'doctrine.system_temporary_directory' => sys_get_temp_dir(),
 
+    'doctrine.entity_manager_registry.logger' => get('doctrine.logger'),
+
     'doctrine.entity_manager_parameters.*.entity_directories' => [],
     'doctrine.entity_manager_parameters.*.proxy_directory' => string('{doctrine.system_temporary_directory}/doctrine-proxies'),
     'doctrine.entity_manager_parameters.*.proxy_namespace' => 'DoctrineProxies',
     'doctrine.entity_manager_parameters.*.proxy_autogenerate' => ProxyFactory::AUTOGENERATE_ALWAYS,
     'doctrine.entity_manager_parameters.*.default_cache' => create(ArrayAdapter::class),
     'doctrine.entity_manager_parameters.*.naming_strategy' => create(UnderscoreNamingStrategy::class),
+    'doctrine.entity_manager_parameters.*.logger' => get('doctrine.logger'),
 
     'doctrine.entity_manager_parameters.default.name' => EntityManagerName::Default,
     'doctrine.entity_manager_parameters.default.dsn' => env('DATABASE_DSN'),
@@ -39,6 +42,7 @@ return [
     'doctrine.entity_manager_parameters.default.result_cache' => get('doctrine.entity_manager_parameters.default.default_cache'),
     'doctrine.entity_manager_parameters.default.default_cache' => get('doctrine.entity_manager_parameters.*.default_cache'),
     'doctrine.entity_manager_parameters.default.naming_strategy' => get('doctrine.entity_manager_parameters.*.naming_strategy'),
+    'doctrine.entity_manager_parameters.default.logger' => get('doctrine.entity_manager_parameters.*.logger'),
 
     'doctrine.entity_manager_parameters_list' => [
         create(EntityManagerParameters::class)
@@ -53,6 +57,7 @@ return [
                 queryCache: get('doctrine.entity_manager_parameters.default.query_cache'),
                 resultCache: get('doctrine.entity_manager_parameters.default.result_cache'),
                 namingStrategy: get('doctrine.entity_manager_parameters.default.naming_strategy'),
+                logger: get('doctrine.entity_manager_parameters.default.logger'),
             )
     ],
 
@@ -63,6 +68,6 @@ return [
             entityManagerFactory: get(EntityManagerFactoryInterface::class),
             entityManagerParametersList: get('doctrine.entity_manager_parameters_list'),
             defaultEntityManagerName: get('doctrine.entity_manager_parameters.default.name'),
-            logger: get('doctrine.logger'),
+            logger: get('doctrine.entity_manager_registry.logger'),
         ),
 ];

@@ -16,6 +16,7 @@ namespace Sunrise\Bridge\Doctrine;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 
 interface EntityManagerParametersInterface
 {
@@ -44,4 +45,6 @@ interface EntityManagerParametersInterface
     public function getResultCache(): CacheItemPoolInterface;
 
     public function getNamingStrategy(): NamingStrategy;
+
+    public function getLogger(): ?LoggerInterface;
 }
