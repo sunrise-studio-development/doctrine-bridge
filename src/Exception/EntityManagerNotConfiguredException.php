@@ -22,6 +22,6 @@ final class EntityManagerNotConfiguredException extends RuntimeException impleme
 {
     public function __construct(EntityManagerNameInterface $entityManagerName)
     {
-        parent::__construct(sprintf('The entity manager "%s" was not configured.', $entityManagerName->getValue()));
+        parent::__construct(sprintf('The entity manager "%s" is not configured.', $entityManagerName->getValue()));
     }
 }

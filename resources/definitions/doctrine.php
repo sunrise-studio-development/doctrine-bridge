@@ -15,12 +15,14 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use function DI\create;
 use function DI\env;
 use function DI\get;
+use function DI\string;
 
 return [
     'doctrine.logger' => null,
+    'doctrine.system_temporary_directory' => sys_get_temp_dir(),
 
     'doctrine.entity_manager_parameters.*.entity_directories' => [],
-    'doctrine.entity_manager_parameters.*.proxy_directory' => sys_get_temp_dir() . '/doctrine/proxies',
+    'doctrine.entity_manager_parameters.*.proxy_directory' => string('{doctrine.system_temporary_directory}/doctrine-proxies'),
     'doctrine.entity_manager_parameters.*.proxy_namespace' => 'DoctrineProxies',
     'doctrine.entity_manager_parameters.*.proxy_autogenerate' => ProxyFactory::AUTOGENERATE_ALWAYS,
     'doctrine.entity_manager_parameters.*.default_cache' => create(ArrayAdapter::class),

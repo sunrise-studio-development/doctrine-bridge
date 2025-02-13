@@ -12,11 +12,11 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
-use Sunrise\Bridge\Doctrine\Integration\Router\Middleware\DoctrineRequestTerminationMiddleware;
+use Sunrise\Bridge\Doctrine\Integration\Router\Middleware\RequestTerminationMiddleware;
 use Sunrise\Bridge\Doctrine\Tests\TestKit;
 use Throwable;
 
-final class DoctrineRequestTerminationMiddlewareTest extends TestCase
+final class RequestTerminationMiddlewareTest extends TestCase
 {
     use TestKit;
 
@@ -36,9 +36,9 @@ final class DoctrineRequestTerminationMiddlewareTest extends TestCase
         $this->mockedClearableEntityManagerNames = [];
     }
 
-    private function createDoctrineRequestTerminationMiddleware(): DoctrineRequestTerminationMiddleware
+    private function createRequestTerminationMiddleware(): RequestTerminationMiddleware
     {
-        return new DoctrineRequestTerminationMiddleware(
+        return new RequestTerminationMiddleware(
             entityManagerRegistry: $this->mockedEntityManagerRegistry,
             flushableEntityManagerNames: $this->mockedFlushableEntityManagerNames,
             clearableEntityManagerNames: $this->mockedClearableEntityManagerNames,
@@ -75,7 +75,7 @@ final class DoctrineRequestTerminationMiddlewareTest extends TestCase
 
         $handler->expects($this->once())->method('handle')->with($request)->willReturn($response);
 
-        self::assertSame($response, $this->createDoctrineRequestTerminationMiddleware()->process($request, $handler));
+        self::assertSame($response, $this->createRequestTerminationMiddleware()->process($request, $handler));
     }
 
     public function testRequestHandlerException(): void
@@ -108,6 +108,6 @@ final class DoctrineRequestTerminationMiddlewareTest extends TestCase
         $handler->expects($this->once())->method('handle')->with($request)->willThrowException($exception);
 
         $this->expectException($exception::class);
-        $this->createDoctrineRequestTerminationMiddleware()->process($request, $handler);
+        $this->createRequestTerminationMiddleware()->process($request, $handler);
     }
 }

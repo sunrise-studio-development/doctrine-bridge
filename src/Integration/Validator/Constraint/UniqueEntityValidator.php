@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine\Integration\Validator\Constraint;
 
-use Override;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Symfony\Component\Validator\Constraint;
@@ -32,11 +31,13 @@ final class UniqueEntityValidator extends ConstraintValidator
 {
     public function __construct(
         private readonly EntityManagerRegistryInterface $entityManagerRegistry,
-        private readonly EntityManagerNameInterface $defaultEntityManagerName,
+        private readonly ?EntityManagerNameInterface $defaultEntityManagerName = null,
     ) {
     }
 
-    #[Override]
+    /**
+     * @inheritDoc
+     */
     public function validate(mixed $value, Constraint $constraint): void
     {
         if (! $constraint instanceof UniqueEntity) {
@@ -44,7 +45,7 @@ final class UniqueEntityValidator extends ConstraintValidator
         }
 
         if ($constraint->fields === []) {
-            throw new ConstraintDefinitionException('The field list must not be empty.');
+            throw new ConstraintDefinitionException('The #[UniqueEntity] constraint requires at least one field.');
         }
 
         if ($value === null) {
@@ -58,7 +59,6 @@ final class UniqueEntityValidator extends ConstraintValidator
         $entityManagerName = $constraint->em ?? $this->defaultEntityManagerName;
         $entityManager = $this->entityManagerRegistry->getEntityManager($entityManagerName);
         $entityMetadata = $entityManager->getClassMetadata($value::class);
-        $entityRepository = $entityManager->getRepository($value::class);
 
         /** @var array<string, mixed> $criteria */
         $criteria = [];
@@ -68,11 +68,13 @@ final class UniqueEntityValidator extends ConstraintValidator
                 !$entityMetadata->hasField($fieldName) &&
                 !$entityMetadata->hasAssociation($fieldName)
             ) {
-                throw new ConstraintDefinitionException(sprintf('The field %s is not mapped by Doctrine.', $fieldName));
+                throw new ConstraintDefinitionException(sprintf(
+                    'The field "%s" is not mapped by Doctrine and cannot be used in #[UniqueEntity].',
+                    $fieldName,
+                ));
             }
 
             $fieldValue = $entityMetadata->getFieldValue($value, $fieldName);
-
             // https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS
             if ($fieldValue === null) {
                 return;
@@ -86,10 +88,8 @@ final class UniqueEntityValidator extends ConstraintValidator
             $criteria[$fieldName] = $fieldValue;
         }
 
-        $entities = $entityRepository->findBy($criteria, limit: 2);
-        reset($entities);
-
-        if ($entities === [] || (count($entities) === 1 && current($entities) === $value)) {
+        $entities = $entityManager->getRepository($value::class)->findBy($criteria, limit: 2);
+        if ($entities === [] || (count($entities) === 1 && reset($entities) === $value)) {
             return;
         }
 

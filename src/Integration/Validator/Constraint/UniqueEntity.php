@@ -14,15 +14,14 @@ declare(strict_types=1);
 namespace Sunrise\Bridge\Doctrine\Integration\Validator\Constraint;
 
 use Attribute;
-use Override;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Symfony\Component\Validator\Constraint;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 final class UniqueEntity extends Constraint
 {
-    public const string ERROR_CODE = '1353312c-956e-44fa-81cb-15028a449136';
-    public const string DEFAULT_ERROR_MESSAGE = 'The value is not unique.';
+    public const ERROR_CODE = '1353312c-956e-44fa-81cb-15028a449136';
+    public const DEFAULT_ERROR_MESSAGE = 'The value is not unique.';
 
     /**
      * {@inheritDoc}
@@ -44,9 +43,10 @@ final class UniqueEntity extends Constraint
 
     /**
      * @inheritDoc
+     *
+     * @return self::CLASS_CONSTRAINT
      */
-    #[Override]
-    public function getTargets(): string|array
+    public function getTargets(): string
     {
         return self::CLASS_CONSTRAINT;
     }

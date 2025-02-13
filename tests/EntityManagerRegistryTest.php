@@ -161,7 +161,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerFactory->expects($this->never())->method('createEntityManagerFromParameters');
         $entityManagerRegistry = $this->createEntityManagerRegistry();
         $this->expectException(EntityManagerNotConfiguredException::class);
-        $this->expectExceptionMessage('The entity manager "unknown" was not configured.');
+        $this->expectExceptionMessage('The entity manager "unknown" is not configured.');
         $entityManagerRegistry->getEntityManager($this->mockEntityManagerName('unknown', calls: 2));
     }
 }

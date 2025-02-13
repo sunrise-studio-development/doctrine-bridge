@@ -20,6 +20,8 @@ use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 final readonly class RequestedEntity
 {
     public function __construct(
+        public ?string $field = null,
+        public ?string $variable = null,
         /** @var array<string, mixed> */
         public array $criteria = [],
         public ?EntityManagerNameInterface $em = null,

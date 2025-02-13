@@ -20,7 +20,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 
-final readonly class DoctrineRequestTerminationMiddleware implements MiddlewareInterface
+final readonly class RequestTerminationMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private EntityManagerRegistryInterface $entityManagerRegistry,

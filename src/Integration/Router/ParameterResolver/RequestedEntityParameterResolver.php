@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine\Integration\Router\ParameterResolver;
 
+use Doctrine\ORM\Mapping\MappingException;
 use Generator;
 use InvalidArgumentException;
 use Psr\Http\Message\ServerRequestInterface;
@@ -22,7 +23,6 @@ use ReflectionParameter;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Router\Annotation\RequestedEntity;
-use Sunrise\Bridge\Doctrine\Integration\Router\Mapping\RouteVariable;
 use Sunrise\Http\Router\Exception\HttpExceptionFactory;
 use Sunrise\Http\Router\ParameterResolverChain;
 use Sunrise\Http\Router\ParameterResolverInterface;
@@ -35,10 +35,15 @@ final readonly class RequestedEntityParameterResolver implements ParameterResolv
 {
     public function __construct(
         private EntityManagerRegistryInterface $entityManagerRegistry,
-        private EntityManagerNameInterface $defaultEntityManagerName,
+        private ?EntityManagerNameInterface $defaultEntityManagerName = null,
     ) {
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @throws MappingException
+     */
     public function resolveParameter(ReflectionParameter $parameter, mixed $context): Generator
     {
         if (! $context instanceof ServerRequestInterface) {
@@ -54,7 +59,7 @@ final readonly class RequestedEntityParameterResolver implements ParameterResolv
         $type = $parameter->getType();
         if (! $type instanceof ReflectionNamedType || $type->isBuiltin()) {
             throw new InvalidArgumentException(sprintf(
-                'To use the #[RequestEntity] annotation, the parameter %s must be typed with an entity.',
+                'To use the #[RequestEntity] annotation, the parameter "%s" must be typed with an entity.',
                 ParameterResolverChain::stringifyParameter($parameter),
             ));
         }
@@ -62,68 +67,17 @@ final readonly class RequestedEntityParameterResolver implements ParameterResolv
         $entityName = $type->getName();
         if (!class_exists($entityName)) {
             throw new InvalidArgumentException(sprintf(
-                'The parameter %s cannot be resolved because it is typed with a non-existent entity.',
+                'The parameter "%s" cannot be resolved because it is typed with a non-existent entity.',
                 ParameterResolverChain::stringifyParameter($parameter),
             ));
         }
 
-        $route = ServerRequest::create($context)->getRoute();
         $processParams = $annotations[0]->newInstance();
 
-        $entityManagerName = $processParams->em ?? $this->defaultEntityManagerName;
-        $entityManager = $this->entityManagerRegistry->getEntityManager($entityManagerName);
-        $entityMetadata = $entityManager->getClassMetadata($entityName);
-        $entityRepository = $entityManager->getRepository($entityName);
-
-        /** @var array<string, mixed> $criteria */
-        $criteria = [];
-        $isRouteVariableUsed = false;
-
-        foreach ($processParams->criteria as $field => $value) {
-            if (
-                !$entityMetadata->hasField($field) &&
-                !$entityMetadata->hasAssociation($field)
-            ) {
-                throw new InvalidArgumentException(sprintf(
-                    'The parameter %s cannot be resolved because the entity field %s is not mapped by Doctrine.',
-                    ParameterResolverChain::stringifyParameter($parameter),
-                    $field,
-                ));
-            }
-
-            if ($value instanceof RouteVariable) {
-                $attribute = $value->name ?? $field;
-                if ($route->hasAttribute($attribute)) {
-                    $criteria[$field] = $route->getAttribute($attribute);
-                }
-
-                $isRouteVariableUsed = true;
-                continue;
-            }
-
-            $criteria[$field] = $value;
-        }
-
-        if ($isRouteVariableUsed === false) {
-            foreach ($route->getAttributes() as $attribute => $value) {
-                if (
-                    $entityMetadata->hasField($attribute) ||
-                    $entityMetadata->hasAssociation($attribute)
-                ) {
-                    $criteria[$attribute] = $value;
-                    $isRouteVariableUsed = true;
-                }
-            }
-        }
-
-        if ($isRouteVariableUsed === false) {
-            throw new InvalidArgumentException(sprintf(
-                'The parameter %s cannot be resolved because the search criteria could not be formed.',
-                ParameterResolverChain::stringifyParameter($parameter),
-            ));
-        }
-
-        $entity = $entityRepository->findOneBy($criteria);
+        $em = $this->entityManagerRegistry->getEntityManager($processParams->em ?? $this->defaultEntityManagerName);
+        $field = $processParams->field ?? $em->getClassMetadata($entityName)->getSingleIdentifierFieldName();
+        $value = ServerRequest::create($context)->getRoute()->getAttribute($processParams->variable ?? $field);
+        $entity = $em->getRepository($entityName)->findOneBy([$field => $value, ...$processParams->criteria]);
 
         if ($entity === null) {
             return $parameter->allowsNull() ? yield null : throw HttpExceptionFactory::resourceNotFound();
@@ -134,6 +88,6 @@ final readonly class RequestedEntityParameterResolver implements ParameterResolv
 
     public function getWeight(): int
     {
-        return 0;
+        return -10;
     }
 }

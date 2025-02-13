@@ -68,9 +68,9 @@ final readonly class MapEntityTypeConverter implements
     {
         $holder = $type->getHolder();
 
-        /** @var MapEntity|null $mapEntity */
-        $mapEntity = $this->annotationReader->getAnnotations(MapEntity::class, $holder)->current();
-        if ($mapEntity === null) {
+        /** @var MapEntity|null $processParams */
+        $processParams = $this->annotationReader->getAnnotations(MapEntity::class, $holder)->current();
+        if ($processParams === null) {
             return;
         }
 
@@ -89,12 +89,12 @@ final readonly class MapEntityTypeConverter implements
         // To support HTML forms and other untyped data sources,
         // empty strings should be treated as NULL rather than being resolved as entities.
         if (is_string($value) && ($value = trim($value)) === '') {
-            return $type->allowsNull() ? yield : throw InvalidValueException::mustNotBeEmpty($path);
+            return $type->allowsNull() ? yield null : throw InvalidValueException::mustNotBeEmpty($path);
         }
 
-        $em = $this->entityManagerRegistry->getEntityManager($mapEntity->em ?? $this->defaultEntityManagerName);
-        $field = $mapEntity->field ?? $em->getClassMetadata($entityName)->getSingleIdentifierFieldName();
-        $entity = $em->getRepository($entityName)->findOneBy([$field => $value, ...$mapEntity->criteria]);
+        $em = $this->entityManagerRegistry->getEntityManager($processParams->em ?? $this->defaultEntityManagerName);
+        $field = $processParams->field ?? $em->getClassMetadata($entityName)->getSingleIdentifierFieldName();
+        $entity = $em->getRepository($entityName)->findOneBy([$field => $value, ...$processParams->criteria]);
 
         if ($entity === null) {
             throw new InvalidValueException(
