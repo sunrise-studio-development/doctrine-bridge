@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine\Integration\Validator\Constraint;
 
+use Psr\Log\LoggerInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Symfony\Component\Validator\Constraint;
@@ -32,6 +33,7 @@ final class UniqueEntityValidator extends ConstraintValidator
     public function __construct(
         private readonly EntityManagerRegistryInterface $entityManagerRegistry,
         private readonly ?EntityManagerNameInterface $defaultEntityManagerName = null,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -89,8 +91,18 @@ final class UniqueEntityValidator extends ConstraintValidator
         }
 
         $entities = $entityManager->getRepository($value::class)->findBy($criteria, limit: 2);
+
         if ($entities === [] || (count($entities) === 1 && reset($entities) === $value)) {
             return;
+        }
+
+        // corner case...
+        if (count($entities) > 1) {
+            $this->logger?->warning('#[UniqueEntity] detected a uniqueness violation in the database.', [
+                'entity' => $value::class,
+                'fields' => $constraint->fields,
+                'em' => $entityManagerName?->getValue(),
+            ]);
         }
 
         /** @var string $errorPath */
