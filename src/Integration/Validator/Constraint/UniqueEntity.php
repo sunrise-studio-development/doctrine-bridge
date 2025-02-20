@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sunrise\Bridge\Doctrine\Integration\Validator\Constraint;
 
 use Attribute;
+use Sunrise\Bridge\Doctrine\Dictionary\ErrorMessage;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Symfony\Component\Validator\Constraint;
 
@@ -21,7 +22,7 @@ use Symfony\Component\Validator\Constraint;
 final class UniqueEntity extends Constraint
 {
     public const ERROR_CODE = '1353312c-956e-44fa-81cb-15028a449136';
-    public const DEFAULT_ERROR_MESSAGE = 'The value is not unique.';
+    public const DEFAULT_ERROR_MESSAGE = ErrorMessage::VALUE_NOT_UNIQUE;
 
     /**
      * {@inheritDoc}

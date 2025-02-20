@@ -15,6 +15,7 @@ namespace Sunrise\Bridge\Doctrine\Integration\Hydrator\TypeConverter;
 
 use Doctrine\ORM\Mapping\MappingException;
 use Generator;
+use Sunrise\Bridge\Doctrine\Dictionary\ErrorMessage;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
@@ -38,7 +39,7 @@ final readonly class MapEntityTypeConverter implements
     TypeConverterInterface
 {
     public const ERROR_CODE = '0a430d9b-b266-4618-b4c8-e1221343b900';
-    public const ERROR_MESSAGE = 'The entity was not found.';
+    public const ERROR_MESSAGE = ErrorMessage::ENTITY_NOT_FOUND;
 
     private AnnotationReaderInterface $annotationReader;
     private HydratorInterface $hydrator;
