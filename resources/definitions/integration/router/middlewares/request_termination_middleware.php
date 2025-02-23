@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Sunrise\Bridge\Doctrine\Dictionary\EntityManagerName;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Router\Middleware\RequestTerminationMiddleware;
 
@@ -10,8 +11,13 @@ use function DI\create;
 use function DI\get;
 
 return [
-    'router.request_termination_middleware.flushable_entity_manager_names' => [],
-    'router.request_termination_middleware.clearable_entity_manager_names' => [],
+    'router.request_termination_middleware.flushable_entity_manager_names' => [
+        EntityManagerName::Default,
+    ],
+
+    'router.request_termination_middleware.clearable_entity_manager_names' => [
+        EntityManagerName::Default,
+    ],
 
     'router.middlewares' => add([
         create(RequestTerminationMiddleware::class)
