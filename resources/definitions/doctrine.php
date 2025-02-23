@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
+use Psr\Cache\CacheItemPoolInterface;
 use Sunrise\Bridge\Doctrine\Dictionary\EntityManagerName;
 use Sunrise\Bridge\Doctrine\EntityManagerFactory;
 use Sunrise\Bridge\Doctrine\EntityManagerFactoryInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerParameters;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 use function DI\create;
 use function DI\env;
@@ -27,7 +27,7 @@ return [
     'doctrine.entity_manager_parameters.*.proxy_directory' => string('{doctrine.system_temporary_directory}/doctrine-proxies'),
     'doctrine.entity_manager_parameters.*.proxy_namespace' => 'DoctrineProxies',
     'doctrine.entity_manager_parameters.*.proxy_autogenerate' => ProxyFactory::AUTOGENERATE_ALWAYS,
-    'doctrine.entity_manager_parameters.*.default_cache' => create(ArrayAdapter::class),
+    'doctrine.entity_manager_parameters.*.default_cache' => get(CacheItemPoolInterface::class),
     'doctrine.entity_manager_parameters.*.naming_strategy' => create(UnderscoreNamingStrategy::class),
     'doctrine.entity_manager_parameters.*.logger' => get('doctrine.logger'),
 
