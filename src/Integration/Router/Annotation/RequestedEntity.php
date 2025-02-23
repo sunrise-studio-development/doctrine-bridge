@@ -16,6 +16,9 @@ namespace Sunrise\Bridge\Doctrine\Integration\Router\Annotation;
 use Attribute;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 
+/**
+ * @link https://dev.sunrise-studio.io/docs/reference/router-annotations?id=requestedentity
+ */
 #[Attribute(Attribute::TARGET_PARAMETER)]
 final readonly class RequestedEntity
 {
