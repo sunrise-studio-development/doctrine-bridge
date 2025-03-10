@@ -1,7 +1,7 @@
 {
   "name": "sunrise-studio/doctrine-bridge",
   "homepage": "https://github.com/sunrise-studio-development/doctrine-bridge",
-  "description": "Bridge to Doctrine for PHP 8.2+ with integration with the Router, Hydrator, and Validator.",
+  "description": "Doctrine Bridge",
   "license": "MIT",
   "keywords": [
     "fenric",
