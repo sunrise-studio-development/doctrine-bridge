@@ -82,7 +82,7 @@ final readonly class RequestTerminationMiddleware implements MiddlewareInterface
         $errorStatusCode = $this->validationFailedErrorStatusCode ?? self::DEFAULT_VALIDATION_FAILED_ERROR_STATUS_CODE;
         $errorMessage = $this->validationFailedErrorMessage ?? self::DEFAULT_VALIDATION_FAILED_ERROR_MESSAGE;
 
-        throw (new HttpException($errorMessage, $errorStatusCode, previous: $e))
+        return (new HttpException($errorMessage, $errorStatusCode, previous: $e))
             ->setTranslationDomain(TranslationDomain::DOCTRINE_BRIDGE)
             ->addConstraintViolation(...array_map(
                 ValidatorConstraintViolationAdapter::create(...),
