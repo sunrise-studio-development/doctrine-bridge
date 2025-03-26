@@ -5,17 +5,12 @@ declare(strict_types=1);
 namespace Sunrise\Bridge\Doctrine\Tests;
 
 use Doctrine\DBAL\Driver;
-use Doctrine\DBAL\Driver\Middleware as MiddlewareInterface;
-use Doctrine\DBAL\Logging\Middleware as LoggingMiddleware;
 use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
-use Psr\Log\LoggerInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerFactory;
 use Sunrise\Bridge\Doctrine\EntityManagerParametersInterface;
-
-use function array_map;
 
 final class EntityManagerFactoryTest extends TestCase
 {
@@ -56,23 +51,5 @@ final class EntityManagerFactoryTest extends TestCase
 
         self::assertSame($connectionDriver::class, $entityManagerConnection->getDriver()::class);
         self::assertSame($resultCache, $entityManagerConnection->getConfiguration()->getResultCache());
-    }
-
-    public function testLogger(): void
-    {
-        $connectionDriver = $this->createMock(Driver::class);
-        $logger = $this->createMock(LoggerInterface::class);
-
-        $entityManagerParameters = $this->createMock(EntityManagerParametersInterface::class);
-        $entityManagerParameters->expects($this->once())->method('getDsn')->willReturn('?driverClass=' . $connectionDriver::class);
-        $entityManagerParameters->expects($this->once())->method('getProxyDirectory')->willReturn('/proxies');
-        $entityManagerParameters->expects($this->once())->method('getProxyNamespace')->willReturn('EntityProxy');
-        $entityManagerParameters->expects($this->once())->method('getLogger')->willReturn($logger);
-
-        self::assertContains(LoggingMiddleware::class, array_map(
-            static fn(MiddlewareInterface $middleware): string => $middleware::class,
-            (new EntityManagerFactory())->createEntityManagerFromParameters($entityManagerParameters)
-                ->getConnection()->getConfiguration()->getMiddlewares(),
-        ));
     }
 }

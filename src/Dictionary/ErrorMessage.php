@@ -19,5 +19,6 @@ namespace Sunrise\Bridge\Doctrine\Dictionary;
 final class ErrorMessage
 {
     public const ENTITY_NOT_FOUND = 'The entity was not found.';
+    public const VALIDATION_FAILED = 'Validation failed.';
     public const VALUE_NOT_UNIQUE = 'The value is not unique.';
 }

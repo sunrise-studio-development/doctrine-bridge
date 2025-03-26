@@ -17,17 +17,29 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Sunrise\Bridge\Doctrine\Dictionary\ErrorMessage;
+use Sunrise\Bridge\Doctrine\Dictionary\TranslationDomain;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
+use Sunrise\Bridge\Doctrine\Exception\EntityValidationFailedException;
+use Sunrise\Http\Router\Exception\HttpException;
+use Sunrise\Http\Router\Validation\ConstraintViolation\ValidatorConstraintViolationAdapter;
+
+use function array_map;
 
 final readonly class RequestTerminationMiddleware implements MiddlewareInterface
 {
+    public const DEFAULT_VALIDATION_FAILED_ERROR_STATUS_CODE = 400;
+    public const DEFAULT_VALIDATION_FAILED_ERROR_MESSAGE = ErrorMessage::VALIDATION_FAILED;
+
     public function __construct(
         private EntityManagerRegistryInterface $entityManagerRegistry,
         /** @var array<array-key, EntityManagerNameInterface> */
         private array $flushableEntityManagerNames,
         /** @var array<array-key, EntityManagerNameInterface> */
         private array $clearableEntityManagerNames,
+        private ?int $validationFailedErrorStatusCode = null,
+        private ?string $validationFailedErrorMessage = null,
     ) {
     }
 
@@ -37,6 +49,8 @@ final readonly class RequestTerminationMiddleware implements MiddlewareInterface
             $response = $handler->handle($request);
             $this->flushEntityManagers();
             return $response;
+        } catch (EntityValidationFailedException $e) {
+            throw $this->adaptEntityValidationFailedException($e);
         } finally {
             $this->clearEntityManagers();
         }
@@ -58,5 +72,21 @@ final readonly class RequestTerminationMiddleware implements MiddlewareInterface
                 $this->entityManagerRegistry->getEntityManager($entityManagerName)->clear();
             }
         }
+    }
+
+    /**
+     * @since 3.3.0
+     */
+    private function adaptEntityValidationFailedException(EntityValidationFailedException $e): HttpException
+    {
+        $errorStatusCode = $this->validationFailedErrorStatusCode ?? self::DEFAULT_VALIDATION_FAILED_ERROR_STATUS_CODE;
+        $errorMessage = $this->validationFailedErrorMessage ?? self::DEFAULT_VALIDATION_FAILED_ERROR_MESSAGE;
+
+        throw (new HttpException($errorMessage, $errorStatusCode, previous: $e))
+            ->setTranslationDomain(TranslationDomain::DOCTRINE_BRIDGE)
+            ->addConstraintViolation(...array_map(
+                ValidatorConstraintViolationAdapter::create(...),
+                [...$e->getConstraintViolations()],
+            ));
     }
 }
