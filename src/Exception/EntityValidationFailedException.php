@@ -22,15 +22,16 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 final class EntityValidationFailedException extends RuntimeException implements ExceptionInterface
 {
     public function __construct(
-        private readonly object $invalidEntity,
         private readonly ConstraintViolationListInterface $constraintViolations,
     ) {
         parent::__construct('Entity validation failed.');
     }
 
-    public function getInvalidEntity(): object
+    public static function assertValid(ConstraintViolationListInterface $constraintViolations): void
     {
-        return $this->invalidEntity;
+        if ($constraintViolations->count() > 0) {
+            throw new self($constraintViolations);
+        }
     }
 
     public function getConstraintViolations(): ConstraintViolationListInterface

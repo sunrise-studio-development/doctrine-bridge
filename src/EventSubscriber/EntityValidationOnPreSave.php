@@ -35,27 +35,16 @@ final readonly class EntityValidationOnPreSave implements EventSubscriber
      */
     public function getSubscribedEvents(): array
     {
-        return [
-            Events::prePersist,
-            Events::preUpdate,
-        ];
+        return [Events::prePersist, Events::preUpdate];
     }
 
     public function prePersist(PrePersistEventArgs $args): void
     {
-        $this->validateEntity($args->getObject());
+        EntityValidationFailedException::assertValid($this->validator->validate($args->getObject()));
     }
 
     public function preUpdate(PreUpdateEventArgs $args): void
     {
-        $this->validateEntity($args->getObject());
-    }
-
-    private function validateEntity(object $object): void
-    {
-        $violations = $this->validator->validate($object);
-        if ($violations->count() > 0) {
-            throw new EntityValidationFailedException($object, $violations);
-        }
+        EntityValidationFailedException::assertValid($this->validator->validate($args->getObject()));
     }
 }

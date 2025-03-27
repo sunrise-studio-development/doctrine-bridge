@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine\Tests;
 
+use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver;
 use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Doctrine\ORM\Mapping\NamingStrategy;
@@ -11,6 +12,8 @@ use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerFactory;
 use Sunrise\Bridge\Doctrine\EntityManagerParametersInterface;
+
+use function array_values;
 
 final class EntityManagerFactoryTest extends TestCase
 {
@@ -22,6 +25,22 @@ final class EntityManagerFactoryTest extends TestCase
         $resultCache = $this->createMock(CacheItemPoolInterface::class);
         $namingStrategy = $this->createMock(NamingStrategy::class);
 
+        $eventSubscribers = [];
+        $eventSubscribers[0] = $this->createMock(EventSubscriber::class);
+        $eventSubscribers[0]->expects($this->any())->method('getSubscribedEvents')->willReturn(['foo']);
+        $eventSubscribers[1] = $this->createMock(EventSubscriber::class);
+        $eventSubscribers[1]->expects($this->any())->method('getSubscribedEvents')->willReturn(['foo']);
+        $eventSubscribers[2] = $this->createMock(EventSubscriber::class);
+        $eventSubscribers[2]->expects($this->any())->method('getSubscribedEvents')->willReturn(['bar']);
+        $eventSubscribers[3] = $this->createMock(EventSubscriber::class);
+        $eventSubscribers[3]->expects($this->any())->method('getSubscribedEvents')->willReturn(['bar']);
+
+        $middlewares = [];
+        $middlewares[0] = $this->createMock(Driver\Middleware::class);
+        $middlewares[0]->expects($this->any())->method('wrap')->with($connectionDriver)->willReturn($connectionDriver);
+        $middlewares[1] = $this->createMock(Driver\Middleware::class);
+        $middlewares[1]->expects($this->any())->method('wrap')->with($connectionDriver)->willReturn($connectionDriver);
+
         $entityManagerParameters = $this->createMock(EntityManagerParametersInterface::class);
         $entityManagerParameters->expects($this->once())->method('getDsn')->willReturn('?driverClass=' . $connectionDriver::class);
         $entityManagerParameters->expects($this->once())->method('getEntityDirectories')->willReturn(['/entities']);
@@ -32,24 +51,24 @@ final class EntityManagerFactoryTest extends TestCase
         $entityManagerParameters->expects($this->once())->method('getQueryCache')->willReturn($queryCache);
         $entityManagerParameters->expects($this->once())->method('getResultCache')->willReturn($resultCache);
         $entityManagerParameters->expects($this->once())->method('getNamingStrategy')->willReturn($namingStrategy);
+        $entityManagerParameters->expects($this->once())->method('getEventSubscribers')->willReturn($eventSubscribers);
+        $entityManagerParameters->expects($this->once())->method('getMiddlewares')->willReturn($middlewares);
 
         $entityManager = (new EntityManagerFactory())->createEntityManagerFromParameters($entityManagerParameters);
-        $entityManagerConfiguration = $entityManager->getConfiguration();
-        $entityManagerConnection = $entityManager->getConnection();
 
-        $metadataDriver = $entityManagerConfiguration->getMetadataDriverImpl();
-        self::assertInstanceOf(AttributeDriver::class, $metadataDriver);
-        self::assertSame(['/entities'], $metadataDriver->getPaths());
-
-        self::assertSame('/proxies', $entityManagerConfiguration->getProxyDir());
-        self::assertSame('EntityProxy', $entityManagerConfiguration->getProxyNamespace());
-        self::assertSame(0, $entityManagerConfiguration->getAutoGenerateProxyClasses());
-        self::assertSame($metadataCache, $entityManagerConfiguration->getMetadataCache());
-        self::assertSame($queryCache, $entityManagerConfiguration->getQueryCache());
-        self::assertSame($resultCache, $entityManagerConfiguration->getResultCache());
-        self::assertSame($namingStrategy, $entityManagerConfiguration->getNamingStrategy());
-
-        self::assertSame($connectionDriver::class, $entityManagerConnection->getDriver()::class);
-        self::assertSame($resultCache, $entityManagerConnection->getConfiguration()->getResultCache());
+        self::assertInstanceOf(AttributeDriver::class, $entityManager->getConfiguration()->getMetadataDriverImpl());
+        self::assertSame(['/entities'], $entityManager->getConfiguration()->getMetadataDriverImpl()->getPaths());
+        self::assertSame('/proxies', $entityManager->getConfiguration()->getProxyDir());
+        self::assertSame('EntityProxy', $entityManager->getConfiguration()->getProxyNamespace());
+        self::assertSame(0, $entityManager->getConfiguration()->getAutoGenerateProxyClasses());
+        self::assertSame($metadataCache, $entityManager->getConfiguration()->getMetadataCache());
+        self::assertSame($queryCache, $entityManager->getConfiguration()->getQueryCache());
+        self::assertSame($resultCache, $entityManager->getConfiguration()->getResultCache());
+        self::assertSame($namingStrategy, $entityManager->getConfiguration()->getNamingStrategy());
+        self::assertSame($connectionDriver::class, $entityManager->getConnection()->getDriver()::class);
+        self::assertSame($resultCache, $entityManager->getConnection()->getConfiguration()->getResultCache());
+        self::assertSame($middlewares, $entityManager->getConnection()->getConfiguration()->getMiddlewares());
+        self::assertEquals([$eventSubscribers[0], $eventSubscribers[1]], array_values($entityManager->getEventManager()->getListeners('foo')));
+        self::assertEquals([$eventSubscribers[2], $eventSubscribers[3]], array_values($entityManager->getEventManager()->getListeners('bar')));
     }
 }
