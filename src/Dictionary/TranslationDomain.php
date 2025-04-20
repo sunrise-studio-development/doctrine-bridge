@@ -18,5 +18,5 @@ namespace Sunrise\Bridge\Doctrine\Dictionary;
  */
 final class TranslationDomain
 {
-    public const DOCTRINE_BRIDGE = 'doctrine.bridge';
+    public const DOCTRINE_BRIDGE = 'doctrine-bridge';
 }
