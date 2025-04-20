@@ -16,6 +16,7 @@ namespace Sunrise\Bridge\Doctrine\Integration\Hydrator\TypeConverter;
 use Doctrine\ORM\Mapping\MappingException;
 use Generator;
 use Sunrise\Bridge\Doctrine\Dictionary\ErrorMessage;
+use Sunrise\Bridge\Doctrine\Dictionary\TranslationDomain;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
@@ -104,6 +105,7 @@ final readonly class MapEntityTypeConverter implements
                 propertyPath: $path,
                 messageTemplate: self::ERROR_MESSAGE,
                 messagePlaceholders: [],
+                translationDomain: TranslationDomain::DOCTRINE_BRIDGE,
             );
         }
 

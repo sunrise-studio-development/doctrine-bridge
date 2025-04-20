@@ -22,8 +22,11 @@ use Sunrise\Bridge\Doctrine\Dictionary\TranslationDomain;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Exception\EntityValidationFailedException;
+use Sunrise\Bridge\Doctrine\Integration\Validator\Constraint\UniqueEntity;
 use Sunrise\Http\Router\Exception\HttpException;
 use Sunrise\Http\Router\Validation\ConstraintViolation\ValidatorConstraintViolationAdapter;
+use Sunrise\Http\Router\Validation\ConstraintViolationInterface as RouterConstraintViolationInterface;
+use Symfony\Component\Validator\ConstraintViolationInterface as ValidatorConstraintViolationInterface;
 
 use function array_map;
 
@@ -85,7 +88,11 @@ final readonly class RequestTerminationMiddleware implements MiddlewareInterface
         return (new HttpException($errorMessage, $errorStatusCode, previous: $e))
             ->setTranslationDomain(TranslationDomain::DOCTRINE_BRIDGE)
             ->addConstraintViolation(...array_map(
-                ValidatorConstraintViolationAdapter::create(...),
+                static fn(ValidatorConstraintViolationInterface $violation): RouterConstraintViolationInterface =>
+                    new ValidatorConstraintViolationAdapter($violation, match ($violation->getCode()) {
+                        UniqueEntity::ERROR_CODE => TranslationDomain::DOCTRINE_BRIDGE,
+                        default => null,
+                    }),
                 [...$e->getConstraintViolations()],
             ));
     }
