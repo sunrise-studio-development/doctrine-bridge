@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
+use Doctrine\Common\EventSubscriber;
+use Doctrine\DBAL\Driver\Middleware;
+use Doctrine\DBAL\Logging\Middleware as LoggingMiddleware;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Psr\Cache\CacheItemPoolInterface;
@@ -35,7 +38,11 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
         private CacheItemPoolInterface $queryCache,
         private CacheItemPoolInterface $resultCache,
         private NamingStrategy $namingStrategy,
-        private ?LoggerInterface $logger,
+        private ?LoggerInterface $logger = null,
+        /** @var array<string, EventSubscriber> */
+        private array $eventSubscribers = [],
+        /** @var array<array-key, Middleware> */
+        private array $middlewares = [],
     ) {
     }
 
@@ -98,5 +105,27 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
     public function getLogger(): ?LoggerInterface
     {
         return $this->logger;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getEventSubscribers(): array
+    {
+        return $this->eventSubscribers;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getMiddlewares(): array
+    {
+        $middlewares = $this->middlewares;
+
+        if ($this->logger !== null) {
+            $middlewares[] = new LoggingMiddleware($this->logger);
+        }
+
+        return $middlewares;
     }
 }

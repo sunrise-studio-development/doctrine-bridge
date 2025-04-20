@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
+use Doctrine\Common\EventManager;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Logging\Middleware as LoggingMiddleware;
 use Doctrine\DBAL\Tools\DsnParser;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
@@ -35,17 +35,16 @@ final readonly class EntityManagerFactory implements EntityManagerFactoryInterfa
         $config->setQueryCache($entityManagerParameters->getQueryCache());
         $config->setResultCache($entityManagerParameters->getResultCache());
         $config->setNamingStrategy($entityManagerParameters->getNamingStrategy());
+        $config->setMiddlewares($entityManagerParameters->getMiddlewares());
 
-        $logger = $entityManagerParameters->getLogger();
-        if ($logger !== null) {
-            $config->setMiddlewares([
-                new LoggingMiddleware($logger),
-            ]);
+        $connParams = (new DsnParser())->parse($entityManagerParameters->getDsn());
+        $connection = DriverManager::getConnection($connParams, $config);
+
+        $eventManager = new EventManager();
+        foreach ($entityManagerParameters->getEventSubscribers() as $eventSubscriber) {
+            $eventManager->addEventSubscriber($eventSubscriber);
         }
 
-        $params = (new DsnParser())->parse($entityManagerParameters->getDsn());
-        $connection = DriverManager::getConnection($params, $config);
-
-        return new EntityManager($connection, $config);
+        return new EntityManager($connection, $config, $eventManager);
     }
 }

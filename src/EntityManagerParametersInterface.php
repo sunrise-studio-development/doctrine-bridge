@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
+use Doctrine\Common\EventSubscriber;
+use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Psr\Cache\CacheItemPoolInterface;
@@ -47,4 +49,18 @@ interface EntityManagerParametersInterface
     public function getNamingStrategy(): NamingStrategy;
 
     public function getLogger(): ?LoggerInterface;
+
+    /**
+     * @return array<array-key, EventSubscriber>
+     *
+     * @since 3.3.0
+     */
+    public function getEventSubscribers(): array;
+
+    /**
+     * @return array<array-key, Middleware>
+     *
+     * @since 3.3.0
+     */
+    public function getMiddlewares(): array;
 }

@@ -6,5 +6,6 @@ use Sunrise\Bridge\Doctrine\Dictionary\ErrorMessage;
 
 return [
     ErrorMessage::ENTITY_NOT_FOUND => 'ไม่พบเอนทิตี',
-    ErrorMessage::VALUE_NOT_UNIQUE => 'ค่ามิได้มีความเป็นเอกลักษณ์',
+    ErrorMessage::VALIDATION_FAILED => 'การตรวจสอบล้มเหลว',
+    ErrorMessage::VALUE_NOT_UNIQUE => 'ค่าที่ไม่ซ้ำไม่เพียงพอ',
 ];

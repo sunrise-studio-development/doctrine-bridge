@@ -10,10 +10,14 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Sunrise\Bridge\Doctrine\Dictionary\TranslationDomain;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
+use Sunrise\Bridge\Doctrine\Exception\EntityValidationFailedException;
 use Sunrise\Bridge\Doctrine\Integration\Router\Middleware\RequestTerminationMiddleware;
 use Sunrise\Bridge\Doctrine\Tests\TestKit;
+use Sunrise\Http\Router\Exception\HttpException;
+use Symfony\Component\Validator\ConstraintViolationList;
 use Throwable;
 
 final class RequestTerminationMiddlewareTest extends TestCase
@@ -36,12 +40,16 @@ final class RequestTerminationMiddlewareTest extends TestCase
         $this->mockedClearableEntityManagerNames = [];
     }
 
-    private function createRequestTerminationMiddleware(): RequestTerminationMiddleware
-    {
+    private function createRequestTerminationMiddleware(
+        ?int $validationFailedErrorStatusCode = null,
+        ?string $validationFailedErrorMessage = null,
+    ): RequestTerminationMiddleware {
         return new RequestTerminationMiddleware(
             entityManagerRegistry: $this->mockedEntityManagerRegistry,
             flushableEntityManagerNames: $this->mockedFlushableEntityManagerNames,
             clearableEntityManagerNames: $this->mockedClearableEntityManagerNames,
+            validationFailedErrorStatusCode: $validationFailedErrorStatusCode,
+            validationFailedErrorMessage: $validationFailedErrorMessage,
         );
     }
 
@@ -78,7 +86,7 @@ final class RequestTerminationMiddlewareTest extends TestCase
         self::assertSame($response, $this->createRequestTerminationMiddleware()->process($request, $handler));
     }
 
-    public function testRequestHandlerException(): void
+    public function testException(): void
     {
         $this->mockedFlushableEntityManagerNames[] = $this->mockEntityManagerName('foo');
         $this->mockedClearableEntityManagerNames[] = $this->mockEntityManagerName('bar');
@@ -109,5 +117,73 @@ final class RequestTerminationMiddlewareTest extends TestCase
 
         $this->expectException($exception::class);
         $this->createRequestTerminationMiddleware()->process($request, $handler);
+    }
+
+    public function testEntityValidationFailedException(): void
+    {
+        $this->mockedFlushableEntityManagerNames[] = $this->mockEntityManagerName('foo');
+        $this->mockedClearableEntityManagerNames[] = $this->mockEntityManagerName('bar');
+        $this->mockedClearableEntityManagerNames[] = $this->mockEntityManagerName('baz');
+
+        $this->mockedEntityManagerRegistry->expects($this->exactly(2))->method('hasEntityManager')->withAnyParameters()->willReturnCallback(
+            function (EntityManagerNameInterface $entityManagerName): bool {
+                self::assertContains($entityManagerName, $this->mockedClearableEntityManagerNames);
+                return true;
+            }
+        );
+
+        $this->mockedEntityManagerRegistry->expects($this->exactly(2))->method('getEntityManager')->withAnyParameters()->willReturnCallback(
+            function (EntityManagerNameInterface $entityManagerName): EntityManagerInterface {
+                self::assertContains($entityManagerName, $this->mockedClearableEntityManagerNames);
+                return $this->mockedEntityManager;
+            }
+        );
+
+        $this->mockedEntityManager->expects($this->never())->method('flush');
+        $this->mockedEntityManager->expects($this->exactly(2))->method('clear');
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $violations = ConstraintViolationList::createFromMessage('foo');
+        $exception = new EntityValidationFailedException($violations);
+
+        $handler->expects($this->once())->method('handle')->with($request)->willThrowException($exception);
+
+        $this->expectException(HttpException::class);
+
+        try {
+            $this->createRequestTerminationMiddleware()->process($request, $handler);
+        } catch (HttpException $e) {
+            self::assertSame($exception, $e->getPrevious());
+            self::assertSame(400, $e->getCode());
+            self::assertSame(TranslationDomain::DOCTRINE_BRIDGE, $e->getTranslationDomain());
+            $actualViolations = $e->getConstraintViolations();
+            self::assertArrayHasKey(0, $actualViolations);
+            self::assertSame('foo', $actualViolations[0]->getMessage());
+
+            throw $e;
+        }
+    }
+
+    public function testEntityValidationFailedExceptionWithCustomStatusCodeAndMessage(): void
+    {
+        $request = $this->createMock(ServerRequestInterface::class);
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $violations = ConstraintViolationList::createFromMessage('foo');
+        $exception = new EntityValidationFailedException($violations);
+
+        $handler->expects($this->once())->method('handle')->with($request)->willThrowException($exception);
+        $this->expectException(HttpException::class);
+
+        try {
+            $this->createRequestTerminationMiddleware(
+                validationFailedErrorStatusCode: 422,
+                validationFailedErrorMessage: 'foo',
+            )->process($request, $handler);
+        } catch (HttpException $e) {
+            self::assertSame(422, $e->getCode());
+            self::assertSame('foo', $e->getMessage());
+            throw $e;
+        }
     }
 }

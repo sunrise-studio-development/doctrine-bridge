@@ -6,5 +6,6 @@ use Sunrise\Bridge\Doctrine\Dictionary\ErrorMessage;
 
 return [
     ErrorMessage::ENTITY_NOT_FOUND => 'Entita nebola nájdená.',
-    ErrorMessage::VALUE_NOT_UNIQUE => 'Hodnota nie je unikátna.',
+    ErrorMessage::VALIDATION_FAILED => 'Validácia zlyhala.',
+    ErrorMessage::VALUE_NOT_UNIQUE => 'Hodnota nie je jedinečná.',
 ];

@@ -30,6 +30,8 @@ return [
     'doctrine.entity_manager_parameters.*.default_cache' => get(CacheItemPoolInterface::class),
     'doctrine.entity_manager_parameters.*.naming_strategy' => create(UnderscoreNamingStrategy::class),
     'doctrine.entity_manager_parameters.*.logger' => get('doctrine.logger'),
+    'doctrine.entity_manager_parameters.*.event_subscribers' => [],
+    'doctrine.entity_manager_parameters.*.middlewares' => [],
 
     'doctrine.entity_manager_parameters.default.name' => EntityManagerName::Default,
     'doctrine.entity_manager_parameters.default.dsn' => env('DATABASE_DSN'),
@@ -43,6 +45,8 @@ return [
     'doctrine.entity_manager_parameters.default.default_cache' => get('doctrine.entity_manager_parameters.*.default_cache'),
     'doctrine.entity_manager_parameters.default.naming_strategy' => get('doctrine.entity_manager_parameters.*.naming_strategy'),
     'doctrine.entity_manager_parameters.default.logger' => get('doctrine.entity_manager_parameters.*.logger'),
+    'doctrine.entity_manager_parameters.default.event_subscribers' => get('doctrine.entity_manager_parameters.*.event_subscribers'),
+    'doctrine.entity_manager_parameters.default.middlewares' => get('doctrine.entity_manager_parameters.*.middlewares'),
 
     'doctrine.entity_manager_parameters_list' => [
         create(EntityManagerParameters::class)
@@ -58,6 +62,8 @@ return [
                 resultCache: get('doctrine.entity_manager_parameters.default.result_cache'),
                 namingStrategy: get('doctrine.entity_manager_parameters.default.naming_strategy'),
                 logger: get('doctrine.entity_manager_parameters.default.logger'),
+                eventSubscribers: get('doctrine.entity_manager_parameters.default.event_subscribers'),
+                middlewares: get('doctrine.entity_manager_parameters.default.middlewares'),
             )
     ],
 
