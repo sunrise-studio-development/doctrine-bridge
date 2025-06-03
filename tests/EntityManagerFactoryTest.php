@@ -106,7 +106,7 @@ final class EntityManagerFactoryTest extends TestCase
         self::assertEquals([$eventSubscribers[0], $eventSubscribers[1]], array_values($entityManager->getEventManager()->getListeners('foo')));
         self::assertEquals([$eventSubscribers[2], $eventSubscribers[3]], array_values($entityManager->getEventManager()->getListeners('bar')));
         self::assertSame($middlewares, $entityManager->getConnection()->getConfiguration()->getMiddlewares());
-        self::assertSame(false, $entityManager->getConnection()->getConfiguration()->getAutoCommit());;
+        self::assertSame(false, $entityManager->getConnection()->getConfiguration()->getAutoCommit());
 
         self::assertSame($fooType::class, Type::getType($fooType::class)::class);
         self::assertSame($barType::class, Type::getType($barType::class)::class);
