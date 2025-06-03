@@ -15,8 +15,11 @@ namespace Sunrise\Bridge\Doctrine;
 
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver\Middleware;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\ORM\Configuration;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
+use Doctrine\ORM\Query\AST\Functions\FunctionNode;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 
@@ -30,6 +33,22 @@ interface EntityManagerParametersInterface
      * @return array<array-key, string>
      */
     public function getEntityDirectories(): array;
+
+    public function getNamingStrategy(): NamingStrategy;
+
+    /**
+     * @return callable(mixed):bool
+     *
+     * @since 3.5.0
+     */
+    public function getSchemaAssetsFilter(): callable;
+
+    /**
+     * @return list<class-string>
+     *
+     * @since 3.5.0
+     */
+    public function getSchemaIgnoreClasses(): array;
 
     public function getProxyDirectory(): string;
 
@@ -46,9 +65,33 @@ interface EntityManagerParametersInterface
 
     public function getResultCache(): CacheItemPoolInterface;
 
-    public function getNamingStrategy(): NamingStrategy;
+    /**
+     * @return array<string, class-string<FunctionNode>|callable(string):FunctionNode>
+     *
+     * @since 3.5.0
+     */
+    public function getCustomDatetimeFunctions(): array;
 
-    public function getLogger(): ?LoggerInterface;
+    /**
+     * @return array<string, class-string<FunctionNode>|callable(string):FunctionNode>
+     *
+     * @since 3.5.0
+     */
+    public function getCustomNumericFunctions(): array;
+
+    /**
+     * @return array<string, class-string<FunctionNode>|callable(string):FunctionNode>
+     *
+     * @since 3.5.0
+     */
+    public function getCustomStringFunctions(): array;
+
+    /**
+     * @return array<array-key, Middleware>
+     *
+     * @since 3.3.0
+     */
+    public function getMiddlewares(): array;
 
     /**
      * @return array<array-key, EventSubscriber>
@@ -58,9 +101,18 @@ interface EntityManagerParametersInterface
     public function getEventSubscribers(): array;
 
     /**
-     * @return array<array-key, Middleware>
+     * @return array<array-key, callable(Configuration):void>
      *
-     * @since 3.3.0
+     * @since 3.5.0
      */
-    public function getMiddlewares(): array;
+    public function getConfigurators(): array;
+
+    /**
+     * @return array<string, class-string<Type>>
+     *
+     * @since 3.5.0
+     */
+    public function getTypes(): array;
+
+    public function getLogger(): ?LoggerInterface;
 }

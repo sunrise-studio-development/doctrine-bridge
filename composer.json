@@ -30,6 +30,7 @@
     "squizlabs/php_codesniffer": "^3.11",
     "sunrise/http-router": "^3.0",
     "sunrise/hydrator": "^3.18",
+    "symfony/cache": "^7.3",
     "symfony/validator": "^7.2",
     "vimeo/psalm": "^6.5"
   },

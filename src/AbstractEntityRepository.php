@@ -16,7 +16,7 @@ use Doctrine\Persistence\ObjectRepository;
  * @implements ObjectRepository<T>
  * @implements Selectable<int, T>
  *
- * @since v3.4.0
+ * @since 3.4.0
  */
 abstract class AbstractEntityRepository implements ObjectRepository, Selectable
 {
@@ -94,12 +94,8 @@ abstract class AbstractEntityRepository implements ObjectRepository, Selectable
      *
      * @see EntityRepository::findBy()
      */
-    final public function findBy(
-        array $criteria,
-        ?array $orderBy = null,
-        ?int $limit = null,
-        ?int $offset = null,
-    ): array {
+    final public function findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null): array
+    {
         return $this->getEntityRepository()->findBy($criteria, $orderBy, $limit, $offset);
     }
 
