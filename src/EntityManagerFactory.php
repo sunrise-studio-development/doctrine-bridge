@@ -16,6 +16,7 @@ namespace Sunrise\Bridge\Doctrine;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -26,16 +27,31 @@ final readonly class EntityManagerFactory implements EntityManagerFactoryInterfa
     public function createEntityManagerFromParameters(
         EntityManagerParametersInterface $entityManagerParameters,
     ): EntityManagerInterface {
+        foreach ($entityManagerParameters->getTypes() as $typeName => $typeClass) {
+            Type::hasType($typeName) or Type::addType($typeName, $typeClass);
+        }
+
         $config = new Configuration();
         $config->setMetadataDriverImpl(new AttributeDriver($entityManagerParameters->getEntityDirectories()));
+        $config->setNamingStrategy($entityManagerParameters->getNamingStrategy());
+        $config->setSchemaAssetsFilter($entityManagerParameters->getSchemaAssetsFilter());
+        $config->setSchemaIgnoreClasses($entityManagerParameters->getSchemaIgnoreClasses());
         $config->setProxyDir($entityManagerParameters->getProxyDirectory());
         $config->setProxyNamespace($entityManagerParameters->getProxyNamespace());
         $config->setAutoGenerateProxyClasses($entityManagerParameters->getProxyAutogenerate());
         $config->setMetadataCache($entityManagerParameters->getMetadataCache());
         $config->setQueryCache($entityManagerParameters->getQueryCache());
         $config->setResultCache($entityManagerParameters->getResultCache());
-        $config->setNamingStrategy($entityManagerParameters->getNamingStrategy());
+        $config->setCustomDatetimeFunctions($entityManagerParameters->getCustomDatetimeFunctions());
+        /** @psalm-suppress InvalidArgument */
+        /** @phpstan-ignore-next-line */
+        $config->setCustomNumericFunctions($entityManagerParameters->getCustomNumericFunctions());
+        $config->setCustomStringFunctions($entityManagerParameters->getCustomStringFunctions());
         $config->setMiddlewares($entityManagerParameters->getMiddlewares());
+
+        foreach ($entityManagerParameters->getConfigurators() as $configurator) {
+            $configurator($config);
+        }
 
         $connParams = (new DsnParser())->parse($entityManagerParameters->getDsn());
         $connection = DriverManager::getConnection($connParams, $config);
