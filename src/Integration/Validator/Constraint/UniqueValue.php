@@ -33,7 +33,7 @@ final class UniqueValue extends Constraint
      * @param array<array-key, string>|null $groups
      */
     public function __construct(
-        /** @var class-string */
+        /** @var class-string|null */
         public readonly ?string $entity = null,
         public readonly ?string $field = null,
         public readonly ?string $errorPath = null,
