@@ -133,8 +133,6 @@ final class UniqueValueValidatorTest extends TestCase
         $this->mockedEntityManager->expects($this->once())->method('getRepository')->with(stdClass::class)->willReturn($this->mockedEntityRepository);
         $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'test'], null, 2)->willReturn([1, 2]);
         $this->mockedExecutionContext->expects($this->once())->method('buildViolation')->with(UniqueValue::DEFAULT_ERROR_MESSAGE)->willReturn($this->mockedConstraintViolationBuilder);
-        $this->mockedExecutionContext->expects($this->once())->method('getPropertyName')->willReturn('foo');
-        $this->mockedConstraintViolationBuilder->expects($this->once())->method('atPath')->with('foo')->willReturnSelf();
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('setCode')->with(UniqueValue::ERROR_CODE)->willReturnSelf();
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('addViolation');
         $this->mockedLogger->expects($this->once())->method('warning')->with('#[UniqueValue] detected a uniqueness violation in the database.', ['entity' => stdClass::class, 'field' => 'foo', 'em' => null]);
@@ -142,28 +140,9 @@ final class UniqueValueValidatorTest extends TestCase
         $constraintValidator->validate('test', $constraint);
     }
 
-    public function testCustomErrorPath(): void
-    {
-        $constraint = new UniqueValue(entity: stdClass::class, field: 'foo', errorPath: 'bar');
-        $constraintValidator = new UniqueValueValidator($this->mockedEntityManagerRegistry);
-        $this->mockedEntityManagerRegistry->expects($this->once())->method('getEntityManager')->with(null)->willReturn($this->mockedEntityManager);
-        $this->mockedEntityManager->expects($this->once())->method('getClassMetadata')->with(stdClass::class)->willReturn($this->mockedEntityMetadata);
-        $this->mockedEntityMetadata->expects($this->once())->method('hasField')->with('foo')->willReturn(true);
-        $this->mockedEntityMetadata->expects($this->once())->method('hasAssociation')->with('foo')->willReturn(false);
-        $this->mockedEntityManager->expects($this->once())->method('getRepository')->with(stdClass::class)->willReturn($this->mockedEntityRepository);
-        $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'test'], null, 2)->willReturn([1]);
-        $this->mockedExecutionContext->expects($this->once())->method('buildViolation')->with(UniqueValue::DEFAULT_ERROR_MESSAGE)->willReturn($this->mockedConstraintViolationBuilder);
-        $this->mockedExecutionContext->expects($this->never())->method('getPropertyName');
-        $this->mockedConstraintViolationBuilder->expects($this->once())->method('atPath')->with('bar')->willReturnSelf();
-        $this->mockedConstraintViolationBuilder->expects($this->once())->method('setCode')->with(UniqueValue::ERROR_CODE)->willReturnSelf();
-        $this->mockedConstraintViolationBuilder->expects($this->once())->method('addViolation');
-        $constraintValidator->initialize($this->mockedExecutionContext);
-        $constraintValidator->validate('test', $constraint);
-    }
-
     public function testCustomErrorMessage(): void
     {
-        $constraint = new UniqueValue(entity: stdClass::class, field: 'foo', errorMessage: 'blah');
+        $constraint = new UniqueValue(entity: stdClass::class, field: 'foo', message: 'blah');
         $constraintValidator = new UniqueValueValidator($this->mockedEntityManagerRegistry);
         $this->mockedEntityManagerRegistry->expects($this->once())->method('getEntityManager')->with(null)->willReturn($this->mockedEntityManager);
         $this->mockedEntityManager->expects($this->once())->method('getClassMetadata')->with(stdClass::class)->willReturn($this->mockedEntityMetadata);
@@ -172,8 +151,6 @@ final class UniqueValueValidatorTest extends TestCase
         $this->mockedEntityManager->expects($this->once())->method('getRepository')->with(stdClass::class)->willReturn($this->mockedEntityRepository);
         $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'test'], null, 2)->willReturn([1]);
         $this->mockedExecutionContext->expects($this->once())->method('buildViolation')->with('blah')->willReturn($this->mockedConstraintViolationBuilder);
-        $this->mockedExecutionContext->expects($this->once())->method('getPropertyName')->willReturn('foo');
-        $this->mockedConstraintViolationBuilder->expects($this->once())->method('atPath')->with('foo')->willReturnSelf();
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('setCode')->with(UniqueValue::ERROR_CODE)->willReturnSelf();
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('addViolation');
         $constraintValidator->initialize($this->mockedExecutionContext);

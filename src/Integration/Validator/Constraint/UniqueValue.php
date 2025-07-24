@@ -36,8 +36,7 @@ final class UniqueValue extends Constraint
         /** @var class-string|null */
         public readonly ?string $entity = null,
         public readonly ?string $field = null,
-        public readonly ?string $errorPath = null,
-        public readonly ?string $errorMessage = null,
+        public readonly ?string $message = null,
         public readonly ?EntityManagerNameInterface $em = null,
         mixed $options = null,
         ?array $groups = null,

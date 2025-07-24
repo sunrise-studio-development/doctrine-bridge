@@ -80,12 +80,7 @@ final class UniqueValueValidator extends ConstraintValidator
             ]);
         }
 
-        /** @var string $errorPath */
-        $errorPath = $constraint->errorPath ?? $this->context->getPropertyName();
-        $errorMessage = $constraint->errorMessage ?? UniqueValue::DEFAULT_ERROR_MESSAGE;
-
-        $this->context->buildViolation($errorMessage)
-            ->atPath($errorPath)
+        $this->context->buildViolation($constraint->message ?? UniqueValue::DEFAULT_ERROR_MESSAGE)
             ->setCode(UniqueValue::ERROR_CODE)
             ->addViolation();
     }
