@@ -124,7 +124,7 @@ final class UniqueEntityValidatorTest extends TestCase
         $constraintValidator->validate($value, $constraint);
     }
 
-    public function testNothingFound(): void
+    public function testEmptyResult(): void
     {
         $value = self::createAnonymousClass();
         $constraint = new UniqueEntity(fields: ['foo']);
@@ -139,18 +139,19 @@ final class UniqueEntityValidatorTest extends TestCase
         $constraintValidator->validate($value, $constraint);
     }
 
-    public function testFoundSelf(): void
+    public function testResultWithSelf(): void
     {
         $value = self::createAnonymousClass();
         $constraint = new UniqueEntity(fields: ['foo']);
         $constraintValidator = new UniqueEntityValidator($this->mockedEntityManagerRegistry);
         $this->mockedEntityManagerRegistry->expects($this->once())->method('getEntityManager')->with(null)->willReturn($this->mockedEntityManager);
-        $this->mockedEntityManager->expects($this->once())->method('getClassMetadata')->with($value::class)->willReturn($this->mockedEntityMetadata);
+        $this->mockedEntityManager->expects($this->exactly(2))->method('getClassMetadata')->with($value::class)->willReturn($this->mockedEntityMetadata);
         $this->mockedEntityMetadata->expects($this->once())->method('hasField')->with('foo')->willReturn(true);
         $this->mockedEntityMetadata->expects($this->once())->method('hasAssociation')->with('foo')->willReturn(false);
         $this->mockedEntityMetadata->expects($this->once())->method('getFieldValue')->with($value, 'foo')->willReturn('bar');
         $this->mockedEntityManager->expects($this->once())->method('getRepository')->with($value::class)->willReturn($this->mockedEntityRepository);
         $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'bar'], null, 2)->willReturn([$value]);
+        $this->mockedExecutionContext->expects($this->never())->method('buildViolation');
         $constraintValidator->validate($value, $constraint);
     }
 
@@ -188,7 +189,7 @@ final class UniqueEntityValidatorTest extends TestCase
         $this->mockedEntityMetadata->expects($this->once())->method('hasAssociation')->with('foo')->willReturn(false);
         $this->mockedEntityMetadata->expects($this->once())->method('getFieldValue')->with($value, 'foo')->willReturn('bar');
         $this->mockedEntityManager->expects($this->once())->method('getRepository')->with($value::class)->willReturn($this->mockedEntityRepository);
-        $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'bar'], null, 2)->willReturn([$duplicate]);
+        $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'bar'], null, 2)->willReturn([$duplicate, $duplicate]);
         $this->mockedExecutionContext->expects($this->once())->method('buildViolation')->with(UniqueEntity::DEFAULT_ERROR_MESSAGE)->willReturn($this->mockedConstraintViolationBuilder);
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('atPath')->with('customPath')->willReturnSelf();
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('setCode')->with(UniqueEntity::ERROR_CODE)->willReturnSelf();
@@ -209,7 +210,7 @@ final class UniqueEntityValidatorTest extends TestCase
         $this->mockedEntityMetadata->expects($this->once())->method('hasAssociation')->with('foo')->willReturn(false);
         $this->mockedEntityMetadata->expects($this->once())->method('getFieldValue')->with($value, 'foo')->willReturn('bar');
         $this->mockedEntityManager->expects($this->once())->method('getRepository')->with($value::class)->willReturn($this->mockedEntityRepository);
-        $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'bar'], null, 2)->willReturn([$duplicate]);
+        $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'bar'], null, 2)->willReturn([$duplicate, $duplicate]);
         $this->mockedExecutionContext->expects($this->once())->method('buildViolation')->with('customMessage')->willReturn($this->mockedConstraintViolationBuilder);
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('atPath')->with('foo')->willReturnSelf();
         $this->mockedConstraintViolationBuilder->expects($this->once())->method('setCode')->with(UniqueEntity::ERROR_CODE)->willReturnSelf();
