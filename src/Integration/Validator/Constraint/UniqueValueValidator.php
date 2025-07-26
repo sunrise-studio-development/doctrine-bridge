@@ -67,12 +67,20 @@ final class UniqueValueValidator extends ConstraintValidator
             $entityManager->initializeObject($value);
         }
 
-        $entities = $entityManager->getRepository($entityName)->findBy([$fieldName => $value], limit: 2);
-        if ($entities === [] || (\count($entities) === 1 && \reset($entities) === $this->context->getObject())) {
+        $result = $entityManager->getRepository($entityName)->findBy([$fieldName => $value], limit: 2);
+
+        if ($result === []) {
             return;
         }
 
-        if (\count($entities) > 1) {
+        /** @var object $object */
+        $object = $this->context->getObject();
+
+        if (count($result) === 1 && $entityManager->getClassMetadata($result[0]::class)->getIdentifierValues($result[0]) === $entityMetadata->getIdentifierValues($object)) {
+            return;
+        }
+
+        if (\count($result) > 1) {
             $this->logger?->warning('#[UniqueValue] detected a uniqueness violation in the database.', [
                 'entity' => $entityName,
                 'field' => $fieldName,

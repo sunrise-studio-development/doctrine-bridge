@@ -90,13 +90,17 @@ final class UniqueEntityValidator extends ConstraintValidator
             $criteria[$fieldName] = $fieldValue;
         }
 
-        $entities = $entityManager->getRepository($value::class)->findBy($criteria, limit: 2);
+        $result = $entityManager->getRepository($value::class)->findBy($criteria, limit: 2);
 
-        if ($entities === [] || (count($entities) === 1 && reset($entities) === $value)) {
+        if ($result === []) {
             return;
         }
 
-        if (count($entities) > 1) {
+        if (count($result) === 1 && $entityManager->getClassMetadata($result[0]::class)->getIdentifierValues($result[0]) === $entityMetadata->getIdentifierValues($value)) {
+            return;
+        }
+
+        if (count($result) > 1) {
             $this->logger?->warning('#[UniqueEntity] detected a uniqueness violation in the database.', [
                 'entity' => $value::class,
                 'fields' => $constraint->fields,
