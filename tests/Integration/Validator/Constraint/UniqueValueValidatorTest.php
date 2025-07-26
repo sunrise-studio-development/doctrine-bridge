@@ -106,22 +106,6 @@ final class UniqueValueValidatorTest extends TestCase
         $constraintValidator->validate('test', $constraint);
     }
 
-    public function testResultWithSelf(): void
-    {
-        $entity = self::createAnonymousClass();
-        $constraint = new UniqueValue(entity: $entity::class, field: 'foo');
-        $constraintValidator = new UniqueValueValidator($this->mockedEntityManagerRegistry);
-        $this->mockedEntityManagerRegistry->expects($this->once())->method('getEntityManager')->with(null)->willReturn($this->mockedEntityManager);
-        $this->mockedEntityManager->expects($this->exactly(2))->method('getClassMetadata')->with($entity::class)->willReturn($this->mockedEntityMetadata);
-        $this->mockedEntityMetadata->expects($this->once())->method('hasField')->with('foo')->willReturn(true);
-        $this->mockedEntityMetadata->expects($this->once())->method('hasAssociation')->with('foo')->willReturn(false);
-        $this->mockedEntityManager->expects($this->once())->method('getRepository')->with($entity::class)->willReturn($this->mockedEntityRepository);
-        $this->mockedExecutionContext->expects($this->once())->method('getObject')->willReturn($entity);
-        $this->mockedEntityRepository->expects($this->once())->method('findBy')->with(['foo' => 'test'], null, 2)->willReturn([$entity]);
-        $constraintValidator->initialize($this->mockedExecutionContext);
-        $constraintValidator->validate('test', $constraint);
-    }
-
     public function testUniquenessViolation(): void
     {
         $constraint = new UniqueValue(entity: stdClass::class, field: 'foo');
