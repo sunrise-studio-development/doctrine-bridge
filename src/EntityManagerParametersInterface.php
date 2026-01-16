@@ -13,10 +13,12 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
+use a;
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Configuration;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Doctrine\ORM\Query\AST\Functions\FunctionNode;
@@ -115,4 +117,11 @@ interface EntityManagerParametersInterface
     public function getTypes(): array;
 
     public function getLogger(): ?LoggerInterface;
+
+    /**
+     * @return array<array-key, callable(EntityManagerInterface):void>
+     *
+     * @since 3.7.0
+     */
+    public function getEntityManagerConfigurators(): array;
 }

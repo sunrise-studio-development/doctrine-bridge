@@ -39,6 +39,7 @@ return [
     'doctrine.entity_manager_parameters.*.configurators' => [],
     'doctrine.entity_manager_parameters.*.types' => [],
     'doctrine.entity_manager_parameters.*.logger' => get('doctrine.logger'),
+    'doctrine.entity_manager_parameters.*.entity_manager_configurators' => [],
 
     'doctrine.entity_manager_parameters.default.name' => EntityManagerName::Default,
     'doctrine.entity_manager_parameters.default.dsn' => env('DATABASE_DSN'),
@@ -61,6 +62,7 @@ return [
     'doctrine.entity_manager_parameters.default.configurators' => get('doctrine.entity_manager_parameters.*.configurators'),
     'doctrine.entity_manager_parameters.default.types' => get('doctrine.entity_manager_parameters.*.types'),
     'doctrine.entity_manager_parameters.default.logger' => get('doctrine.entity_manager_parameters.*.logger'),
+    'doctrine.entity_manager_parameters.default.entity_manager_configurators' => get('doctrine.entity_manager_parameters.*.entity_manager_configurators'),
 
     'doctrine.entity_manager_parameters_list' => [
         create(EntityManagerParameters::class)
@@ -85,6 +87,7 @@ return [
                 configurators: get('doctrine.entity_manager_parameters.default.configurators'),
                 types: get('doctrine.entity_manager_parameters.default.types'),
                 logger: get('doctrine.entity_manager_parameters.default.logger'),
+                entityManagerConfigurators: get('doctrine.entity_manager_parameters.default.entity_manager_configurators'),
             )
     ],
 

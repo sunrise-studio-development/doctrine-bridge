@@ -18,6 +18,7 @@ use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\Logging\Middleware as LoggingMiddleware;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Configuration;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
@@ -62,6 +63,8 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
         /** @var array<string, class-string<Type>> */
         private array $types = [],
         private ?LoggerInterface $logger = null,
+        /** @var array<array-key, callable(EntityManagerInterface):void> */
+        private array $entityManagerConfigurators = [],
     ) {
     }
 
@@ -210,5 +213,13 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
     public function getLogger(): ?LoggerInterface
     {
         return $this->logger;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getEntityManagerConfigurators(): array
+    {
+        return $this->entityManagerConfigurators;
     }
 }
