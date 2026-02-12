@@ -36,9 +36,6 @@ final readonly class EntityManagerFactory implements EntityManagerFactoryInterfa
         $configuration->setNamingStrategy($entityManagerParameters->getNamingStrategy());
         $configuration->setSchemaAssetsFilter($entityManagerParameters->getSchemaAssetsFilter());
         $configuration->setSchemaIgnoreClasses($entityManagerParameters->getSchemaIgnoreClasses());
-        $configuration->setProxyDir($entityManagerParameters->getProxyDirectory());
-        $configuration->setProxyNamespace($entityManagerParameters->getProxyNamespace());
-        $configuration->setAutoGenerateProxyClasses($entityManagerParameters->getProxyAutogenerate());
         $configuration->setMetadataCache($entityManagerParameters->getMetadataCache());
         $configuration->setQueryCache($entityManagerParameters->getQueryCache());
         $configuration->setResultCache($entityManagerParameters->getResultCache());
@@ -48,6 +45,15 @@ final readonly class EntityManagerFactory implements EntityManagerFactoryInterfa
         $configuration->setCustomNumericFunctions($entityManagerParameters->getCustomNumericFunctions());
         $configuration->setCustomStringFunctions($entityManagerParameters->getCustomStringFunctions());
         $configuration->setMiddlewares($entityManagerParameters->getMiddlewares());
+
+        // https://github.com/doctrine/orm/pull/12005
+        if (\PHP_VERSION_ID < 80400) {
+            $configuration->setProxyDir($entityManagerParameters->getProxyDirectory());
+            $configuration->setProxyNamespace($entityManagerParameters->getProxyNamespace());
+            $configuration->setAutoGenerateProxyClasses($entityManagerParameters->getProxyAutogenerate());
+        } elseif (\method_exists($configuration, 'enableNativeLazyObjects')) {
+            $configuration->enableNativeLazyObjects(true);
+        }
 
         foreach ($entityManagerParameters->getConfigurators() as $configurator) {
             $configurator($configuration);

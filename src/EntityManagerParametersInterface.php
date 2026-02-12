@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
-use a;
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\Types\Type;
