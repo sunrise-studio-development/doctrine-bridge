@@ -31,36 +31,47 @@ final readonly class EntityManagerFactory implements EntityManagerFactoryInterfa
             Type::hasType($typeName) or Type::addType($typeName, $typeClass);
         }
 
-        $config = new Configuration();
-        $config->setMetadataDriverImpl(new AttributeDriver($entityManagerParameters->getEntityDirectories()));
-        $config->setNamingStrategy($entityManagerParameters->getNamingStrategy());
-        $config->setSchemaAssetsFilter($entityManagerParameters->getSchemaAssetsFilter());
-        $config->setSchemaIgnoreClasses($entityManagerParameters->getSchemaIgnoreClasses());
-        $config->setProxyDir($entityManagerParameters->getProxyDirectory());
-        $config->setProxyNamespace($entityManagerParameters->getProxyNamespace());
-        $config->setAutoGenerateProxyClasses($entityManagerParameters->getProxyAutogenerate());
-        $config->setMetadataCache($entityManagerParameters->getMetadataCache());
-        $config->setQueryCache($entityManagerParameters->getQueryCache());
-        $config->setResultCache($entityManagerParameters->getResultCache());
-        $config->setCustomDatetimeFunctions($entityManagerParameters->getCustomDatetimeFunctions());
+        $configuration = new Configuration();
+        $configuration->setMetadataDriverImpl(new AttributeDriver($entityManagerParameters->getEntityDirectories()));
+        $configuration->setNamingStrategy($entityManagerParameters->getNamingStrategy());
+        $configuration->setSchemaAssetsFilter($entityManagerParameters->getSchemaAssetsFilter());
+        $configuration->setSchemaIgnoreClasses($entityManagerParameters->getSchemaIgnoreClasses());
+        $configuration->setMetadataCache($entityManagerParameters->getMetadataCache());
+        $configuration->setQueryCache($entityManagerParameters->getQueryCache());
+        $configuration->setResultCache($entityManagerParameters->getResultCache());
+        $configuration->setCustomDatetimeFunctions($entityManagerParameters->getCustomDatetimeFunctions());
         /** @psalm-suppress InvalidArgument */
         /** @phpstan-ignore-next-line */
-        $config->setCustomNumericFunctions($entityManagerParameters->getCustomNumericFunctions());
-        $config->setCustomStringFunctions($entityManagerParameters->getCustomStringFunctions());
-        $config->setMiddlewares($entityManagerParameters->getMiddlewares());
+        $configuration->setCustomNumericFunctions($entityManagerParameters->getCustomNumericFunctions());
+        $configuration->setCustomStringFunctions($entityManagerParameters->getCustomStringFunctions());
+        $configuration->setMiddlewares($entityManagerParameters->getMiddlewares());
 
-        foreach ($entityManagerParameters->getConfigurators() as $configurator) {
-            $configurator($config);
+        // https://github.com/doctrine/orm/pull/12005
+        if (\PHP_VERSION_ID < 80400) {
+            $configuration->setProxyDir($entityManagerParameters->getProxyDirectory());
+            $configuration->setProxyNamespace($entityManagerParameters->getProxyNamespace());
+            $configuration->setAutoGenerateProxyClasses($entityManagerParameters->getProxyAutogenerate());
+        } elseif (\method_exists($configuration, 'enableNativeLazyObjects')) {
+            $configuration->enableNativeLazyObjects(true);
         }
 
-        $connParams = (new DsnParser())->parse($entityManagerParameters->getDsn());
-        $connection = DriverManager::getConnection($connParams, $config);
+        foreach ($entityManagerParameters->getConfigurators() as $configurator) {
+            $configurator($configuration);
+        }
+
+        $parsedDsn = (new DsnParser())->parse($entityManagerParameters->getDsn());
+        $connection = DriverManager::getConnection($parsedDsn, $configuration);
 
         $eventManager = new EventManager();
         foreach ($entityManagerParameters->getEventSubscribers() as $eventSubscriber) {
             $eventManager->addEventSubscriber($eventSubscriber);
         }
 
-        return new EntityManager($connection, $config, $eventManager);
+        $entityManager = new EntityManager($connection, $configuration, $eventManager);
+        foreach ($entityManagerParameters->getEntityManagerConfigurators() as $configurator) {
+            $configurator($entityManager);
+        }
+
+        return $entityManager;
     }
 }

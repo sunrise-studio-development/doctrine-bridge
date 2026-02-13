@@ -7,6 +7,7 @@ namespace Sunrise\Bridge\Doctrine\Tests;
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\Types\GuidType;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
@@ -45,6 +46,8 @@ final class EntityManagerParametersTest extends TestCase
         $eventSubscribers[] = $this->createMock(EventSubscriber::class);
         $eventSubscribers[] = $this->createMock(EventSubscriber::class);
 
+        $entityManagerConfigurator = static fn(EntityManagerInterface $em) => null;
+
         $parameters = new EntityManagerParameters(
             name: $name,
             dsn: 'dsn',
@@ -66,6 +69,7 @@ final class EntityManagerParametersTest extends TestCase
             configurators: [$configurator],
             types: [GuidType::class => GuidType::class],
             logger: $logger,
+            entityManagerConfigurators: [$entityManagerConfigurator],
         );
 
         self::assertSame($name, $parameters->getName());
@@ -93,6 +97,7 @@ final class EntityManagerParametersTest extends TestCase
         self::assertSame([$configurator], $parameters->getConfigurators());
         self::assertSame([GuidType::class => GuidType::class], $parameters->getTypes());
         self::assertSame($logger, $parameters->getLogger());
+        self::assertSame([$entityManagerConfigurator], $parameters->getEntityManagerConfigurators());
     }
 
     public function testDefaultParameters(): void
@@ -119,6 +124,7 @@ final class EntityManagerParametersTest extends TestCase
         self::assertSame([], $parameters->getConfigurators());
         self::assertSame([], $parameters->getTypes());
         self::assertSame(null, $parameters->getLogger());
+        self::assertSame([], $parameters->getEntityManagerConfigurators());
     }
 
     public function testSensitiveParameters(): void

@@ -8,6 +8,7 @@ use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Configuration;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
@@ -60,9 +61,6 @@ final class EntityManagerFactoryTest extends TestCase
         $entityManagerParameters->expects($this->once())->method('getNamingStrategy')->willReturn($namingStrategy);
         $entityManagerParameters->expects($this->once())->method('getSchemaAssetsFilter')->willReturn(static fn() => false);
         $entityManagerParameters->expects($this->once())->method('getSchemaIgnoreClasses')->willReturn([stdClass::class]);
-        $entityManagerParameters->expects($this->once())->method('getProxyDirectory')->willReturn('/proxies');
-        $entityManagerParameters->expects($this->once())->method('getProxyNamespace')->willReturn('EntityProxy');
-        $entityManagerParameters->expects($this->once())->method('getProxyAutogenerate')->willReturn(ProxyFactory::AUTOGENERATE_NEVER);
         $entityManagerParameters->expects($this->once())->method('getMetadataCache')->willReturn($metadataCache);
         $entityManagerParameters->expects($this->once())->method('getQueryCache')->willReturn($queryCache);
         $entityManagerParameters->expects($this->once())->method('getResultCache')->willReturn($resultCache);
@@ -78,11 +76,23 @@ final class EntityManagerFactoryTest extends TestCase
             }
         ]);
 
+        $entityManagerParameters->expects($this->once())->method('getEntityManagerConfigurators')->willReturn([
+            static function (EntityManagerInterface $entityManager): void {
+                $entityManager->getConfiguration()->setEagerFetchBatchSize(1_000);
+            }
+        ]);
+
         $entityManagerParameters->expects($this->once())->method('getTypes')->willReturn([
             $fooType::class => $fooType::class,
             $barType::class => $barType::class,
             $bazType::class => $bazType::class,
         ]);
+
+        if (\PHP_VERSION_ID < 80400) {
+            $entityManagerParameters->expects($this->once())->method('getProxyDirectory')->willReturn('/proxies');
+            $entityManagerParameters->expects($this->once())->method('getProxyNamespace')->willReturn('EntityProxy');
+            $entityManagerParameters->expects($this->once())->method('getProxyAutogenerate')->willReturn(ProxyFactory::AUTOGENERATE_NEVER);
+        }
 
         $entityManager = (new EntityManagerFactory())->createEntityManagerFromParameters($entityManagerParameters);
 
@@ -91,9 +101,6 @@ final class EntityManagerFactoryTest extends TestCase
         self::assertSame($namingStrategy, $entityManager->getConfiguration()->getNamingStrategy());
         self::assertSame(false, ($entityManager->getConfiguration()->getSchemaAssetsFilter())(null));
         self::assertSame([stdClass::class], $entityManager->getConfiguration()->getSchemaIgnoreClasses());
-        self::assertSame('/proxies', $entityManager->getConfiguration()->getProxyDir());
-        self::assertSame('EntityProxy', $entityManager->getConfiguration()->getProxyNamespace());
-        self::assertSame(ProxyFactory::AUTOGENERATE_NEVER, $entityManager->getConfiguration()->getAutoGenerateProxyClasses());
         self::assertSame($metadataCache, $entityManager->getConfiguration()->getMetadataCache());
         self::assertSame($queryCache, $entityManager->getConfiguration()->getQueryCache());
         self::assertSame($resultCache, $entityManager->getConfiguration()->getResultCache());
@@ -107,9 +114,16 @@ final class EntityManagerFactoryTest extends TestCase
         self::assertEquals([$eventSubscribers[2], $eventSubscribers[3]], array_values($entityManager->getEventManager()->getListeners('bar')));
         self::assertSame($middlewares, $entityManager->getConnection()->getConfiguration()->getMiddlewares());
         self::assertSame(false, $entityManager->getConnection()->getConfiguration()->getAutoCommit());
+        self::assertSame(1_000, $entityManager->getConfiguration()->getEagerFetchBatchSize());
 
         self::assertSame($fooType::class, Type::getType($fooType::class)::class);
         self::assertSame($barType::class, Type::getType($barType::class)::class);
         self::assertSame($bazType::class, Type::getType($bazType::class)::class);
+
+        if (\PHP_VERSION_ID < 80400) {
+            self::assertSame('/proxies', $entityManager->getConfiguration()->getProxyDir());
+            self::assertSame('EntityProxy', $entityManager->getConfiguration()->getProxyNamespace());
+            self::assertSame(ProxyFactory::AUTOGENERATE_NEVER, $entityManager->getConfiguration()->getAutoGenerateProxyClasses());
+        }
     }
 }
