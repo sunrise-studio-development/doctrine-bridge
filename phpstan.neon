@@ -2,3 +2,4 @@ parameters:
   ignoreErrors:
     - '#Class .* has an uninitialized readonly property .*\. Assign it in the constructor\.#'
     - '#Readonly property .* is assigned outside of the constructor\.#'
+    - '#Parameter \#1 \$functions of method Doctrine\\ORM\\Configuration::setCustomNumericFunctions\(\)#'

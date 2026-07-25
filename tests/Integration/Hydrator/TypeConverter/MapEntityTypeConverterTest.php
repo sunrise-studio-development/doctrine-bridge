@@ -16,10 +16,10 @@ use stdClass;
 use Stringable;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
+use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\ValueType;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\TypeConverter\MapEntityTypeConverter;
 use Sunrise\Bridge\Doctrine\Tests\TestKit;
 use Sunrise\Hydrator\AnnotationReaderInterface;
-use Sunrise\Hydrator\Annotation\Subtype;
 use Sunrise\Hydrator\Dictionary\ErrorMessage;
 use Sunrise\Hydrator\Exception\InvalidObjectException;
 use Sunrise\Hydrator\Exception\InvalidValueException;
@@ -91,7 +91,7 @@ final class MapEntityTypeConverterTest extends TestCase
         yield [TestKit::class];
     }
 
-    public function testSubtype(): void
+    public function testValueType(): void
     {
         $expectedEntity = new class {
         };
@@ -108,12 +108,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(),
-                    Subtype::class => yield new Subtype('int', true),
+                    ValueType::class => yield new ValueType('int', true),
                 };
             }
         );
@@ -147,12 +147,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );
@@ -171,12 +171,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );
@@ -210,12 +210,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );
@@ -246,12 +246,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );
@@ -283,12 +283,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type, $expectedEntityManagerName): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(em: $expectedEntityManagerName),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );
@@ -316,12 +316,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(field: 'publicId'),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );
@@ -350,12 +350,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(criteria: ['isDeleted' => false]),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );
@@ -384,12 +384,12 @@ final class MapEntityTypeConverterTest extends TestCase
 
         $this->mockedAnnotationReader->expects($this->exactly(2))->method('getAnnotations')->withAnyParameters()->willReturnCallback(
             static function (string $name, mixed $holder) use ($type): Generator {
-                self::assertContains($name, [MapEntity::class, Subtype::class]);
+                self::assertContains($name, [MapEntity::class, ValueType::class]);
                 self::assertSame($type->getHolder(), $holder);
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(),
-                    Subtype::class => yield from [],
+                    ValueType::class => yield from [],
                 };
             }
         );

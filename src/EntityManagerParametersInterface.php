@@ -15,12 +15,17 @@ namespace Sunrise\Bridge\Doctrine;
 
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver\Middleware;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\EntityListenerResolver;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Doctrine\ORM\Query\AST\Functions\FunctionNode;
+use Doctrine\ORM\Query\Filter\SQLFilter;
+use Doctrine\ORM\Repository\RepositoryFactory;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 
@@ -31,11 +36,42 @@ interface EntityManagerParametersInterface
     public function getDsn(): string;
 
     /**
+     * @return array<array-key, class-string<Type>>
+     *
+     * @since 3.5.0
+     */
+    public function getTypes(): array;
+
+    /**
+     * @return array<array-key, Middleware>
+     *
+     * @since 3.3.0
+     */
+    public function getMiddlewares(): array;
+
+    /**
      * @return array<array-key, string>
      */
     public function getEntityDirectories(): array;
 
     public function getNamingStrategy(): NamingStrategy;
+
+    /**
+     * @return array<class-string<AbstractPlatform>, ClassMetadata::GENERATOR_TYPE_*>
+     *
+     * @since 3.8.0
+     */
+    public function getIdentityGenerationPreferences(): array;
+
+    /**
+     * @since 3.8.0
+     */
+    public function getEntityListenerResolver(): EntityListenerResolver;
+
+    /**
+     * @since 3.8.0
+     */
+    public function getRepositoryFactory(): RepositoryFactory;
 
     /**
      * @return callable(mixed):bool
@@ -50,15 +86,6 @@ interface EntityManagerParametersInterface
      * @since 3.5.0
      */
     public function getSchemaIgnoreClasses(): array;
-
-    public function getProxyDirectory(): string;
-
-    public function getProxyNamespace(): string;
-
-    /**
-     * @return ProxyFactory::AUTOGENERATE_*
-     */
-    public function getProxyAutogenerate(): int;
 
     public function getMetadataCache(): CacheItemPoolInterface;
 
@@ -88,11 +115,29 @@ interface EntityManagerParametersInterface
     public function getCustomStringFunctions(): array;
 
     /**
-     * @return array<array-key, Middleware>
+     * @return array<string, class-string<SQLFilter>>
      *
-     * @since 3.3.0
+     * @since 3.8.0
      */
-    public function getMiddlewares(): array;
+    public function getFilters(): array;
+
+    /**
+     * @see getFilters
+     *
+     * @return array<array-key, string>
+     *
+     * @since 3.8.0
+     */
+    public function getEnabledFilters(): array;
+
+    public function getProxyDir(): string;
+
+    public function getProxyNamespace(): string;
+
+    /**
+     * @return ProxyFactory::AUTOGENERATE_*
+     */
+    public function getAutoGenerateProxyClasses(): int;
 
     /**
      * @return array<array-key, EventSubscriber>
@@ -101,21 +146,14 @@ interface EntityManagerParametersInterface
      */
     public function getEventSubscribers(): array;
 
+    public function getLogger(): ?LoggerInterface;
+
     /**
      * @return array<array-key, callable(Configuration):void>
      *
      * @since 3.5.0
      */
     public function getConfigurators(): array;
-
-    /**
-     * @return array<array-key, class-string<Type>>
-     *
-     * @since 3.5.0
-     */
-    public function getTypes(): array;
-
-    public function getLogger(): ?LoggerInterface;
 
     /**
      * @return array<array-key, callable(EntityManagerInterface):void>

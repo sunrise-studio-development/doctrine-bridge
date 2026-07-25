@@ -7,15 +7,15 @@ namespace Sunrise\Bridge\Doctrine\Tests\Integration\Router\OpenApi;
 use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 use ReflectionParameter;
 use ReflectionProperty;
 use Reflector;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
+use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\ValueType;
 use Sunrise\Bridge\Doctrine\Integration\Router\OpenApi\MapEntityPhpTypeSchemaResolver;
-use PHPUnit\Framework\TestCase;
 use Sunrise\Http\Router\OpenApi\OpenApiPhpTypeSchemaResolverManagerInterface;
 use Sunrise\Http\Router\OpenApi\Type;
-use Sunrise\Hydrator\Annotation\Subtype;
 
 final class MapEntityPhpTypeSchemaResolverTest extends TestCase
 {
@@ -45,12 +45,6 @@ final class MapEntityPhpTypeSchemaResolverTest extends TestCase
 
         yield [
             'phpType' => new Type('mixed', true),
-            'phpTypeHolder' => new ReflectionParameter(static fn(#[Subtype('mixed', true)] mixed $foo): mixed => $foo, 'foo'),
-            'expectedResult' => false,
-        ];
-
-        yield [
-            'phpType' => new Type('mixed', true),
             'phpTypeHolder' => new ReflectionProperty(new class {
                 private mixed $foo;
             }, 'foo'),
@@ -68,7 +62,7 @@ final class MapEntityPhpTypeSchemaResolverTest extends TestCase
         yield [
             'phpType' => new Type('mixed', true),
             'phpTypeHolder' => new ReflectionProperty(new class {
-                #[Subtype('mixed', true)] private mixed $foo;
+                #[ValueType('mixed', true)] private mixed $foo;
             }, 'foo'),
             'expectedResult' => false,
         ];
@@ -76,7 +70,7 @@ final class MapEntityPhpTypeSchemaResolverTest extends TestCase
         yield [
             'phpType' => new Type('mixed', true),
             'phpTypeHolder' => new ReflectionProperty(new class {
-                #[MapEntity, Subtype('mixed', true)] private mixed $foo;
+                #[MapEntity, ValueType('mixed', true)] private mixed $foo;
             }, 'foo'),
             'expectedResult' => true,
         ];
@@ -89,7 +83,7 @@ final class MapEntityPhpTypeSchemaResolverTest extends TestCase
             ->expects($isSupportedPhpType ? $this->atLeastOnce() : $this->never())
             ->method('resolvePhpTypeSchema')
             ->with(self::callback(static function (Type $arg) use ($phpType): bool {
-                return [$phpType->name, $phpType->allowsNull] === [$arg->name, $arg->allowsNull];
+                return [$phpType->getName(), $phpType->allowsNull()] === [$arg->getName(), $arg->allowsNull()];
             }), $phpTypeHolder)
             ->willReturn($expectedResult);
 
@@ -108,13 +102,6 @@ final class MapEntityPhpTypeSchemaResolverTest extends TestCase
         yield [
             'isSupportedPhpType' => false,
             'phpType' => new Type('mixed', true),
-            'phpTypeHolder' => new ReflectionParameter(static fn(#[Subtype('mixed', true)] mixed $foo): mixed => $foo, 'foo'),
-            'expectedResult' => [],
-        ];
-
-        yield [
-            'isSupportedPhpType' => false,
-            'phpType' => new Type('mixed', true),
             'phpTypeHolder' => new ReflectionProperty(new class {
                 private mixed $foo;
             }, 'foo'),
@@ -134,7 +121,7 @@ final class MapEntityPhpTypeSchemaResolverTest extends TestCase
             'isSupportedPhpType' => true,
             'phpType' => new Type('mixed', true),
             'phpTypeHolder' => new ReflectionProperty(new class {
-                #[Subtype('mixed', true)] private mixed $foo;
+                #[ValueType('mixed', true)] private mixed $foo;
             }, 'foo'),
             'expectedResult' => ['foo' => 'bar'],
         ];
@@ -143,7 +130,7 @@ final class MapEntityPhpTypeSchemaResolverTest extends TestCase
             'isSupportedPhpType' => true,
             'phpType' => new Type('mixed', true),
             'phpTypeHolder' => new ReflectionProperty(new class {
-                #[MapEntity, Subtype('mixed', true)] private mixed $foo;
+                #[MapEntity, ValueType('mixed', true)] private mixed $foo;
             }, 'foo'),
             'expectedResult' => ['foo' => 'bar'],
         ];

@@ -55,9 +55,9 @@ final class EntityManagerParametersTest extends TestCase
             namingStrategy: $namingStrategy,
             schemaAssetFilters: [$schemaAssetFilter],
             schemaIgnoreClasses: [stdClass::class],
-            proxyDirectory: '/test-doctrine-proxies',
+            proxyDir: '/test-doctrine-proxies',
             proxyNamespace: 'TestDoctrineProxies',
-            proxyAutogenerate: ProxyFactory::AUTOGENERATE_NEVER,
+            autoGenerateProxyClasses: ProxyFactory::AUTOGENERATE_NEVER,
             metadataCache: $metadataCache,
             queryCache: $queryCache,
             resultCache: $resultCache,
@@ -78,9 +78,9 @@ final class EntityManagerParametersTest extends TestCase
         self::assertSame($namingStrategy, $parameters->getNamingStrategy());
         self::assertSame(false, ($parameters->getSchemaAssetsFilter())(null));
         self::assertSame([stdClass::class], $parameters->getSchemaIgnoreClasses());
-        self::assertSame('/test-doctrine-proxies', $parameters->getProxyDirectory());
+        self::assertSame('/test-doctrine-proxies', $parameters->getProxyDir());
         self::assertSame('TestDoctrineProxies', $parameters->getProxyNamespace());
-        self::assertSame(ProxyFactory::AUTOGENERATE_NEVER, $parameters->getProxyAutogenerate());
+        self::assertSame(ProxyFactory::AUTOGENERATE_NEVER, $parameters->getAutoGenerateProxyClasses());
         self::assertSame($metadataCache, $parameters->getMetadataCache());
         self::assertSame($queryCache, $parameters->getQueryCache());
         self::assertSame($resultCache, $parameters->getResultCache());
@@ -110,9 +110,9 @@ final class EntityManagerParametersTest extends TestCase
         self::assertSame(true, ($parameters->getSchemaAssetsFilter())(null));
         self::assertSame([], $parameters->getSchemaIgnoreClasses());
         $defaultProxyDirectory = \sys_get_temp_dir() . '/doctrine-proxies';
-        self::assertSame($defaultProxyDirectory, $parameters->getProxyDirectory());
+        self::assertSame($defaultProxyDirectory, $parameters->getProxyDir());
         self::assertSame('DoctrineProxies', $parameters->getProxyNamespace());
-        self::assertSame(ProxyFactory::AUTOGENERATE_ALWAYS, $parameters->getProxyAutogenerate());
+        self::assertSame(ProxyFactory::AUTOGENERATE_ALWAYS, $parameters->getAutoGenerateProxyClasses());
         self::assertSame(ArrayAdapter::class, $parameters->getMetadataCache()::class);
         self::assertSame(ArrayAdapter::class, $parameters->getQueryCache()::class);
         self::assertSame(ArrayAdapter::class, $parameters->getResultCache()::class);

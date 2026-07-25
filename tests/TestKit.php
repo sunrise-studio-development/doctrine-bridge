@@ -9,8 +9,6 @@ use PHPUnit\Framework\MockObject\Rule\InvocationOrder;
 use PHPUnit\Framework\TestCase;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 
-use function is_int;
-
 /**
  * @psalm-require-extends TestCase
  * @phpstan-require-extends TestCase
@@ -46,7 +44,7 @@ trait TestKit
         if ($invocationOrder === true || $invocationOrder === 1) {
             return $this->once();
         }
-        if (is_int($invocationOrder)) {
+        if (\is_int($invocationOrder)) {
             return $this->exactly($invocationOrder);
         }
 

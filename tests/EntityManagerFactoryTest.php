@@ -19,8 +19,6 @@ use stdClass;
 use Sunrise\Bridge\Doctrine\EntityManagerFactory;
 use Sunrise\Bridge\Doctrine\EntityManagerParametersInterface;
 
-use function array_values;
-
 final class EntityManagerFactoryTest extends TestCase
 {
     public function testCreatesEntityManagerFromParameters(): void
@@ -89,9 +87,9 @@ final class EntityManagerFactoryTest extends TestCase
         ]);
 
         if (\PHP_VERSION_ID < 80400) {
-            $entityManagerParameters->expects($this->once())->method('getProxyDirectory')->willReturn('/proxies');
+            $entityManagerParameters->expects($this->once())->method('getProxyDir')->willReturn('/proxies');
             $entityManagerParameters->expects($this->once())->method('getProxyNamespace')->willReturn('EntityProxy');
-            $entityManagerParameters->expects($this->once())->method('getProxyAutogenerate')->willReturn(ProxyFactory::AUTOGENERATE_NEVER);
+            $entityManagerParameters->expects($this->once())->method('getAutoGenerateProxyClasses')->willReturn(ProxyFactory::AUTOGENERATE_NEVER);
         }
 
         $entityManager = (new EntityManagerFactory())->createEntityManagerFromParameters($entityManagerParameters);
@@ -110,8 +108,8 @@ final class EntityManagerFactoryTest extends TestCase
 
         self::assertSame($connectionDriver::class, $entityManager->getConnection()->getDriver()::class);
         self::assertSame($resultCache, $entityManager->getConnection()->getConfiguration()->getResultCache());
-        self::assertEquals([$eventSubscribers[0], $eventSubscribers[1]], array_values($entityManager->getEventManager()->getListeners('foo')));
-        self::assertEquals([$eventSubscribers[2], $eventSubscribers[3]], array_values($entityManager->getEventManager()->getListeners('bar')));
+        self::assertEquals([$eventSubscribers[0], $eventSubscribers[1]], \array_values($entityManager->getEventManager()->getListeners('foo')));
+        self::assertEquals([$eventSubscribers[2], $eventSubscribers[3]], \array_values($entityManager->getEventManager()->getListeners('bar')));
         self::assertSame($middlewares, $entityManager->getConnection()->getConfiguration()->getMiddlewares());
         self::assertSame(false, $entityManager->getConnection()->getConfiguration()->getAutoCommit());
         self::assertSame(1_000, $entityManager->getConfiguration()->getEagerFetchBatchSize());

@@ -16,13 +16,20 @@ namespace Sunrise\Bridge\Doctrine;
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\Logging\Middleware as LoggingMiddleware;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\DefaultEntityListenerResolver;
+use Doctrine\ORM\Mapping\EntityListenerResolver;
 use Doctrine\ORM\Mapping\NamingStrategy;
 use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Doctrine\ORM\Query\AST\Functions\FunctionNode;
+use Doctrine\ORM\Query\Filter\SQLFilter;
+use Doctrine\ORM\Repository\DefaultRepositoryFactory;
+use Doctrine\ORM\Repository\RepositoryFactory;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use SensitiveParameter;
@@ -34,17 +41,21 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
         private EntityManagerNameInterface $name,
         #[SensitiveParameter]
         private string $dsn,
+        /** @var array<array-key, class-string<Type>> */
+        private array $types = [],
+        /** @var array<array-key, Middleware> */
+        private array $middlewares = [],
         /** @var array<array-key, string> */
         private array $entityDirectories = [],
         private ?NamingStrategy $namingStrategy = null,
+        /** @var array<class-string<AbstractPlatform>, ClassMetadata::GENERATOR_TYPE_*> */
+        private array $identityGenerationPreferences = [],
+        private ?EntityListenerResolver $entityListenerResolver = null,
+        private ?RepositoryFactory $repositoryFactory = null,
         /** @var array<array-key, callable(mixed):bool> */
         private array $schemaAssetFilters = [],
         /** @var list<class-string> */
         private array $schemaIgnoreClasses = [],
-        private ?string $proxyDirectory = null,
-        private ?string $proxyNamespace = null,
-        /** @var (ProxyFactory::AUTOGENERATE_*)|null */
-        private ?int $proxyAutogenerate = null,
         private ?CacheItemPoolInterface $metadataCache = null,
         private ?CacheItemPoolInterface $queryCache = null,
         private ?CacheItemPoolInterface $resultCache = null,
@@ -54,15 +65,19 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
         private array $customNumericFunctions = [],
         /** @var array<string, class-string<FunctionNode>|callable(string):FunctionNode> */
         private array $customStringFunctions = [],
-        /** @var array<array-key, Middleware> */
-        private array $middlewares = [],
+        /** @var array<string, class-string<SQLFilter>> */
+        private array $filters = [],
+        /** @var array<array-key, string> */
+        private array $enabledFilters = [],
+        private ?string $proxyDir = null,
+        private ?string $proxyNamespace = null,
+        /** @var (ProxyFactory::AUTOGENERATE_*)|null */
+        private ?int $autoGenerateProxyClasses = null,
         /** @var array<string, EventSubscriber> */
         private array $eventSubscribers = [],
+        private ?LoggerInterface $logger = null,
         /** @var array<array-key, callable(Configuration):void> */
         private array $configurators = [],
-        /** @var array<array-key, class-string<Type>> */
-        private array $types = [],
-        private ?LoggerInterface $logger = null,
         /** @var array<array-key, callable(EntityManagerInterface):void> */
         private array $entityManagerConfigurators = [],
     ) {
@@ -81,6 +96,28 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
     /**
      * @inheritDoc
      */
+    public function getTypes(): array
+    {
+        return $this->types;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getMiddlewares(): array
+    {
+        $middlewares = $this->middlewares;
+
+        if ($this->logger !== null) {
+            $middlewares[] = new LoggingMiddleware($this->logger);
+        }
+
+        return $middlewares;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getEntityDirectories(): array
     {
         return $this->entityDirectories;
@@ -89,6 +126,24 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
     public function getNamingStrategy(): NamingStrategy
     {
         return $this->namingStrategy ?? new UnderscoreNamingStrategy();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getIdentityGenerationPreferences(): array
+    {
+        return $this->identityGenerationPreferences;
+    }
+
+    public function getEntityListenerResolver(): EntityListenerResolver
+    {
+        return $this->entityListenerResolver ?? new DefaultEntityListenerResolver();
+    }
+
+    public function getRepositoryFactory(): RepositoryFactory
+    {
+        return $this->repositoryFactory ?? new DefaultRepositoryFactory();
     }
 
     /**
@@ -113,24 +168,6 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
     public function getSchemaIgnoreClasses(): array
     {
         return $this->schemaIgnoreClasses;
-    }
-
-    public function getProxyDirectory(): string
-    {
-        return $this->proxyDirectory ?? \sys_get_temp_dir() . '/doctrine-proxies';
-    }
-
-    public function getProxyNamespace(): string
-    {
-        return $this->proxyNamespace ?? 'DoctrineProxies';
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getProxyAutogenerate(): int
-    {
-        return $this->proxyAutogenerate ?? ProxyFactory::AUTOGENERATE_ALWAYS;
     }
 
     public function getMetadataCache(): CacheItemPoolInterface
@@ -175,15 +212,35 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
     /**
      * @inheritDoc
      */
-    public function getMiddlewares(): array
+    public function getFilters(): array
     {
-        $middlewares = $this->middlewares;
+        return $this->filters;
+    }
 
-        if ($this->logger !== null) {
-            $middlewares[] = new LoggingMiddleware($this->logger);
-        }
+    /**
+     * @inheritDoc
+     */
+    public function getEnabledFilters(): array
+    {
+        return $this->enabledFilters;
+    }
 
-        return $middlewares;
+    public function getProxyDir(): string
+    {
+        return $this->proxyDir ?? \sys_get_temp_dir() . '/doctrine-proxies';
+    }
+
+    public function getProxyNamespace(): string
+    {
+        return $this->proxyNamespace ?? 'DoctrineProxies';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getAutoGenerateProxyClasses(): int
+    {
+        return $this->autoGenerateProxyClasses ?? ProxyFactory::AUTOGENERATE_ALWAYS;
     }
 
     /**
@@ -194,25 +251,17 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
         return $this->eventSubscribers;
     }
 
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->logger;
+    }
+
     /**
      * @inheritDoc
      */
     public function getConfigurators(): array
     {
         return $this->configurators;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getTypes(): array
-    {
-        return $this->types;
-    }
-
-    public function getLogger(): ?LoggerInterface
-    {
-        return $this->logger;
     }
 
     /**
