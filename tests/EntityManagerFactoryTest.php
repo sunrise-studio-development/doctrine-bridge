@@ -93,6 +93,7 @@ final class EntityManagerFactoryTest extends TestCase
 
         $entityManager = (new EntityManagerFactory())->createEntityManagerFromParameters($entityManagerParameters);
 
+        self::assertSame($driver::class, $entityManager->getConnection()->getParams()['driverClass']);
         self::assertSame($type::class, Type::getType($type::class)::class);
         self::assertCount(2, $entityManager->getConfiguration()->getMiddlewares());
         self::assertSame($middlewares[0], $entityManager->getConfiguration()->getMiddlewares()[0]);
