@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -60,7 +60,7 @@ final readonly class EntityManagerParameters implements EntityManagerParametersI
         private array $eventSubscribers = [],
         /** @var array<array-key, callable(Configuration):void> */
         private array $configurators = [],
-        /** @var array<string, class-string<Type>> */
+        /** @var array<array-key, class-string<Type>> */
         private array $types = [],
         private ?LoggerInterface $logger = null,
         /** @var array<array-key, callable(EntityManagerInterface):void> */

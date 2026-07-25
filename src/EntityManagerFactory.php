@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -27,7 +27,8 @@ final readonly class EntityManagerFactory implements EntityManagerFactoryInterfa
     public function createEntityManagerFromParameters(
         EntityManagerParametersInterface $entityManagerParameters,
     ): EntityManagerInterface {
-        foreach ($entityManagerParameters->getTypes() as $typeName => $typeClass) {
+        foreach ($entityManagerParameters->getTypes() as $key => $typeClass) {
+            $typeName = \is_int($key) ? $typeClass : $key;
             Type::hasType($typeName) or Type::addType($typeName, $typeClass);
         }
 

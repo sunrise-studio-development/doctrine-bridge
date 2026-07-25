@@ -12,7 +12,6 @@
       <directory name="vendor" />
     </ignoreFiles>
   </projectFiles>
-
   <issueHandlers>
     <InaccessibleProperty errorLevel="suppress" />
     <MissingOverrideAttribute errorLevel="suppress" />

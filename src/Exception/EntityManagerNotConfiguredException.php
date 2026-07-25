@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -16,12 +16,10 @@ namespace Sunrise\Bridge\Doctrine\Exception;
 use RuntimeException;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 
-use function sprintf;
-
 final class EntityManagerNotConfiguredException extends RuntimeException implements ExceptionInterface
 {
     public function __construct(EntityManagerNameInterface $entityManagerName)
     {
-        parent::__construct(sprintf('The entity manager "%s" is not configured.', $entityManagerName->getValue()));
+        parent::__construct(\sprintf('The entity manager "%s" is not configured.', $entityManagerName->getValue()));
     }
 }

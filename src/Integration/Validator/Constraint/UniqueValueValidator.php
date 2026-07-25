@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -56,7 +56,10 @@ final class UniqueValueValidator extends ConstraintValidator
         /** @var string $fieldName */
         $fieldName = $constraint->field ?? $this->context->getPropertyName();
 
-        if (!$entityMetadata->hasField($fieldName) && !$entityMetadata->hasAssociation($fieldName)) {
+        if (
+            !$entityMetadata->hasField($fieldName) &&
+            !$entityMetadata->hasAssociation($fieldName)
+        ) {
             throw new ConstraintDefinitionException(\sprintf(
                 'The field "%s" is not mapped by Doctrine and cannot be used in #[UniqueValue].',
                 $fieldName,
@@ -67,13 +70,31 @@ final class UniqueValueValidator extends ConstraintValidator
             $entityManager->initializeObject($value);
         }
 
-        $result = $entityManager->getRepository($entityName)->findBy([$fieldName => $value], limit: 2);
+        $foundEntities = $entityManager
+            ->getRepository($entityName)
+            ->findBy([$fieldName => $value], limit: 2);
 
-        if ($result === []) {
+        if ($foundEntities === []) {
             return;
         }
 
-        if (\count($result) > 1) {
+        /** @var object $validatedObject */
+        $validatedObject = $this->context->getObject();
+
+        if (\count($foundEntities) === 1 && $validatedObject instanceof $entityName) {
+            $foundEntityIdentifier = $entityManager
+                ->getClassMetadata($foundEntities[0]::class)
+                ->getIdentifierValues($foundEntities[0]);
+
+            $validatedEntityIdentifier = $entityMetadata
+                ->getIdentifierValues($validatedObject);
+
+            if ($foundEntityIdentifier === $validatedEntityIdentifier) {
+                return;
+            }
+        }
+
+        if (\count($foundEntities) > 1) {
             $this->logger?->warning('#[UniqueValue] detected a uniqueness violation in the database.', [
                 'entity' => $entityName,
                 'field' => $fieldName,

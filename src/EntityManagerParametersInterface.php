@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -109,7 +109,7 @@ interface EntityManagerParametersInterface
     public function getConfigurators(): array;
 
     /**
-     * @return array<string, class-string<Type>>
+     * @return array<array-key, class-string<Type>>
      *
      * @since 3.5.0
      */

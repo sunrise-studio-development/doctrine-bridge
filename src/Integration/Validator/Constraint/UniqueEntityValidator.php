@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -21,12 +21,6 @@ use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Symfony\Component\Validator\Exception\UnexpectedValueException;
-
-use function count;
-use function current;
-use function is_object;
-use function reset;
-use function sprintf;
 
 final class UniqueEntityValidator extends ConstraintValidator
 {
@@ -54,7 +48,7 @@ final class UniqueEntityValidator extends ConstraintValidator
             return;
         }
 
-        if (!is_object($value)) {
+        if (!\is_object($value)) {
             throw new UnexpectedValueException($value, 'object');
         }
 
@@ -70,7 +64,7 @@ final class UniqueEntityValidator extends ConstraintValidator
                 !$entityMetadata->hasField($fieldName) &&
                 !$entityMetadata->hasAssociation($fieldName)
             ) {
-                throw new ConstraintDefinitionException(sprintf(
+                throw new ConstraintDefinitionException(\sprintf(
                     'The field "%s" is not mapped by Doctrine and cannot be used in #[UniqueEntity].',
                     $fieldName,
                 ));
@@ -82,25 +76,35 @@ final class UniqueEntityValidator extends ConstraintValidator
                 return;
             }
 
-            if ($entityMetadata->hasAssociation($fieldName)) {
-                /** @var object $fieldValue */
+            if ($entityMetadata->hasAssociation($fieldName) && \is_object($fieldValue)) {
                 $entityManager->initializeObject($fieldValue);
             }
 
             $criteria[$fieldName] = $fieldValue;
         }
 
-        $result = $entityManager->getRepository($value::class)->findBy($criteria, limit: 2);
+        $foundEntities = $entityManager
+            ->getRepository($value::class)
+            ->findBy($criteria, limit: 2);
 
-        if ($result === []) {
+        if ($foundEntities === []) {
             return;
         }
 
-        if (count($result) === 1 && $entityManager->getClassMetadata($result[0]::class)->getIdentifierValues($result[0]) === $entityMetadata->getIdentifierValues($value)) {
-            return;
+        if (\count($foundEntities) === 1) {
+            $foundEntityIdentifier = $entityManager
+                ->getClassMetadata($foundEntities[0]::class)
+                ->getIdentifierValues($foundEntities[0]);
+
+            $validatedEntityIdentifier = $entityMetadata
+                ->getIdentifierValues($value);
+
+            if ($foundEntityIdentifier === $validatedEntityIdentifier) {
+                return;
+            }
         }
 
-        if (count($result) > 1) {
+        if (\count($foundEntities) > 1) {
             $this->logger?->warning('#[UniqueEntity] detected a uniqueness violation in the database.', [
                 'entity' => $value::class,
                 'fields' => $constraint->fields,
@@ -109,7 +113,7 @@ final class UniqueEntityValidator extends ConstraintValidator
         }
 
         /** @var string $errorPath */
-        $errorPath = $constraint->errorPath ?? current($constraint->fields);
+        $errorPath = $constraint->errorPath ?? \current($constraint->fields);
         $errorMessage = $constraint->errorMessage ?? UniqueEntity::DEFAULT_ERROR_MESSAGE;
 
         $this->context->buildViolation($errorMessage)
