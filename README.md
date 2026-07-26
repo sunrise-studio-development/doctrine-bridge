@@ -1,11 +1,13 @@
 # Doctrine Bridge
 
-🇬🇧 **English version** | [🇷🇺 Русская версия](README-ru.md)
-
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/?branch=master)
 [![Build Status](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/badges/build.png?b=master)](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/build-status/master)
 [![Code Intelligence Status](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
+
+🇬🇧 **English version** | [🇷🇺 Русская версия](README-ru.md)
+
+---
 
 Doctrine Bridge provides a **production-ready** [Doctrine ORM](https://github.com/doctrine/orm) integration for projects outside Symfony: it creates and stores named `EntityManager` instances, helps manage their state in long-running processes, and provides integrations for repositories, HTTP requests, hydration, and validation. The package is configured directly with PHP code, and ready-made container definitions are available for projects using [php-di/php-di](https://github.com/PHP-DI/PHP-DI).
 
