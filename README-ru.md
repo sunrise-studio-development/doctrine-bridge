@@ -1,5 +1,7 @@
 # Doctrine Bridge
 
+[🇬🇧 English version](README.md) | 🇷🇺 **Русская версия**
+
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/?branch=master)
 [![Build Status](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/badges/build.png?b=master)](https://scrutinizer-ci.com/g/sunrise-studio-development/doctrine-bridge/build-status/master)
