@@ -20,7 +20,7 @@ use Sunrise\Bridge\Doctrine\Dictionary\TranslationDomain;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
-use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\ValueType;
+use Sunrise\Hydrator\Annotation\Subtype;
 use Sunrise\Hydrator\AnnotationReaderAwareInterface;
 use Sunrise\Hydrator\AnnotationReaderInterface;
 use Sunrise\Hydrator\Exception\InvalidObjectException;
@@ -77,8 +77,8 @@ final readonly class MapEntityTypeConverter implements
             throw InvalidObjectException::unsupportedType($type);
         }
 
-        /** @var ValueType|null $valueType */
-        $valueType = $this->annotationReader->getAnnotations(ValueType::class, $holder)->current();
+        /** @var Subtype|null $valueType */
+        $valueType = $this->annotationReader->getAnnotations(Subtype::class, $holder)->current();
         if ($valueType !== null) {
             $castType = new Type(null, $valueType->name, $valueType->allowsNull);
             $value = $this->hydrator->castValue($value, $castType, $path, $context);

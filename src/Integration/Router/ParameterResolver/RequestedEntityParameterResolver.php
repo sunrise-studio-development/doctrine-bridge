@@ -73,8 +73,10 @@ final readonly class RequestedEntityParameterResolver implements ParameterResolv
         $value = ServerRequest::create($context)->getRoute()->getAttribute($requestedEntity->variable ?? $field);
         $entity = $em->getRepository($entityName)->findOneBy([$field => $value, ...$requestedEntity->criteria]);
 
-        if ($entity === null && !$parameter->allowsNull()) {
-            throw HttpExceptionFactory::resourceNotFound();
+        if ($entity === null) {
+            if (!$parameter->allowsNull()) {
+                throw HttpExceptionFactory::resourceNotFound();
+            }
         }
 
         yield $entity;

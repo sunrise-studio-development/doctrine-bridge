@@ -13,15 +13,16 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine\Integration\Router\OpenApi;
 
+use ReflectionAttribute;
 use ReflectionProperty;
 use Reflector;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
-use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\ValueType;
 use Sunrise\Http\Router\OpenApi\OpenApiPhpTypeSchemaResolverInterface;
 use Sunrise\Http\Router\OpenApi\OpenApiPhpTypeSchemaResolverManagerAwareInterface;
 use Sunrise\Http\Router\OpenApi\OpenApiPhpTypeSchemaResolverManagerInterface;
 use Sunrise\Http\Router\OpenApi\Type;
 use Sunrise\Http\Router\OpenApi\TypeInterface;
+use Sunrise\Hydrator\Annotation\Subtype;
 
 /**
  * @since 3.3.0
@@ -42,7 +43,7 @@ final readonly class MapEntityPhpTypeSchemaResolver implements
     {
         return $phpTypeHolder instanceof ReflectionProperty
             && $phpTypeHolder->getAttributes(MapEntity::class) !== []
-            && $phpTypeHolder->getAttributes(ValueType::class) !== [];
+            && $phpTypeHolder->getAttributes(Subtype::class, ReflectionAttribute::IS_INSTANCEOF) !== [];
     }
 
     /**
@@ -54,8 +55,12 @@ final readonly class MapEntityPhpTypeSchemaResolver implements
             return [];
         }
 
-        /** @var ValueType|null $valueType */
-        $valueType = ($phpTypeHolder->getAttributes(ValueType::class)[0] ?? null)?->newInstance();
+        /** @var Subtype|null $valueType */
+        $valueType = ($phpTypeHolder->getAttributes(
+            Subtype::class,
+            ReflectionAttribute::IS_INSTANCEOF,
+        )[0] ?? null)?->newInstance();
+
         if ($valueType === null) {
             return [];
         }

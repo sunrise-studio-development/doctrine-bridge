@@ -13,6 +13,7 @@
     </ignoreFiles>
   </projectFiles>
   <issueHandlers>
+    <DeprecatedClass errorLevel="suppress" />
     <InaccessibleProperty errorLevel="suppress" />
     <MissingOverrideAttribute errorLevel="suppress" />
     <MixedAssignment errorLevel="suppress" />

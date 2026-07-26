@@ -14,13 +14,16 @@ declare(strict_types=1);
 namespace Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation;
 
 use Attribute;
+use Sunrise\Hydrator\Annotation\Subtype;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final readonly class ValueType
+final class ValueType extends Subtype
 {
-    public function __construct(
-        public string $name,
-        public bool $allowsNull = false,
-    ) {
+    /**
+     * @param non-empty-string $name
+     */
+    public function __construct(string $name, bool $allowsNull = false)
+    {
+        parent::__construct($name, $allowsNull);
     }
 }
