@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrise\Bridge\Doctrine\Tests;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception as DatabaseException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -15,7 +16,6 @@ use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerParametersInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistry;
 use Sunrise\Bridge\Doctrine\Exception\EntityManagerNotConfiguredException;
-use Throwable;
 
 final class EntityManagerRegistryTest extends TestCase
 {
@@ -128,7 +128,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
         $this->mockedEntityManagerFactory->expects($this->exactly(3))->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
         $this->mockedEntityManager->expects($this->exactly(2))->method('isOpen')->willReturn(false);
-        $this->mockedLogger->expects($this->exactly(2))->method('warning')->with('A closed entity manager was detected and shut down.', ['em' => 'default']);
+        $this->mockedLogger->expects($this->exactly(2))->method('warning')->with('A closed entity manager was detected and discarded.', ['em' => 'default']);
         $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 3), withLogger: true);
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
@@ -146,7 +146,7 @@ final class EntityManagerRegistryTest extends TestCase
         $platform = $this->createMock(AbstractPlatform::class);
         $platform->expects($this->exactly(2))->method('getDummySelectSQL')->willReturn('SELECT 1');
         $this->mockedConnection->expects($this->exactly(2))->method('getDatabasePlatform')->willReturn($platform);
-        $error = $this->createMock(Throwable::class);
+        $error = $this->createMock(DatabaseException::class);
         $this->mockedConnection->expects($this->exactly(2))->method('executeQuery')->with('SELECT 1')->willThrowException($error);
         $this->mockedConnection->expects($this->exactly(2))->method('close');
         $this->mockedLogger->expects($this->exactly(2))->method('warning')->with('An unstable database connection was detected and closed.', ['em' => 'default', 'error' => $error]);

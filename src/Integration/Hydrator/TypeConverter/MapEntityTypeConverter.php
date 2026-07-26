@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -20,19 +20,15 @@ use Sunrise\Bridge\Doctrine\Dictionary\TranslationDomain;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
+use Sunrise\Hydrator\Annotation\Subtype;
 use Sunrise\Hydrator\AnnotationReaderAwareInterface;
 use Sunrise\Hydrator\AnnotationReaderInterface;
-use Sunrise\Hydrator\Annotation\Subtype;
 use Sunrise\Hydrator\Exception\InvalidObjectException;
 use Sunrise\Hydrator\Exception\InvalidValueException;
 use Sunrise\Hydrator\HydratorAwareInterface;
 use Sunrise\Hydrator\HydratorInterface;
 use Sunrise\Hydrator\Type;
 use Sunrise\Hydrator\TypeConverterInterface;
-
-use function class_exists;
-use function is_string;
-use function trim;
 
 final readonly class MapEntityTypeConverter implements
     AnnotationReaderAwareInterface,
@@ -70,33 +66,36 @@ final readonly class MapEntityTypeConverter implements
     {
         $holder = $type->getHolder();
 
-        /** @var MapEntity|null $processParams */
-        $processParams = $this->annotationReader->getAnnotations(MapEntity::class, $holder)->current();
-        if ($processParams === null) {
+        /** @var MapEntity|null $mapEntity */
+        $mapEntity = $this->annotationReader->getAnnotations(MapEntity::class, $holder)->current();
+        if ($mapEntity === null) {
             return;
         }
 
         $entityName = $type->getName();
-        if (!class_exists($entityName)) {
+        if (!\class_exists($entityName)) {
             throw InvalidObjectException::unsupportedType($type);
         }
 
-        /** @var Subtype|null $subtype */
-        $subtype = $this->annotationReader->getAnnotations(Subtype::class, $holder)->current();
-        if ($subtype !== null) {
-            $castType = new Type(null, $subtype->name, $subtype->allowsNull);
+        /** @var Subtype|null $valueType */
+        $valueType = $this->annotationReader->getAnnotations(Subtype::class, $holder)->current();
+        if ($valueType !== null) {
+            $castType = new Type(null, $valueType->name, $valueType->allowsNull);
             $value = $this->hydrator->castValue($value, $castType, $path, $context);
         }
 
-        // To support HTML forms and other untyped data sources,
-        // empty strings should be treated as NULL rather than being resolved as entities.
-        if (is_string($value) && ($value = trim($value)) === '') {
-            return $type->allowsNull() ? yield null : throw InvalidValueException::mustNotBeEmpty($path);
+        if (\is_string($value) && ($value = \trim($value)) === '') {
+            if (!$type->allowsNull()) {
+                throw InvalidValueException::mustNotBeEmpty($path);
+            }
+
+            yield null;
+            return;
         }
 
-        $em = $this->entityManagerRegistry->getEntityManager($processParams->em ?? $this->defaultEntityManagerName);
-        $field = $processParams->field ?? $em->getClassMetadata($entityName)->getSingleIdentifierFieldName();
-        $entity = $em->getRepository($entityName)->findOneBy([$field => $value, ...$processParams->criteria]);
+        $em = $this->entityManagerRegistry->getEntityManager($mapEntity->em ?? $this->defaultEntityManagerName);
+        $field = $mapEntity->field ?? $em->getClassMetadata($entityName)->getSingleIdentifierFieldName();
+        $entity = $em->getRepository($entityName)->findOneBy([$field => $value, ...$mapEntity->criteria]);
 
         if ($entity === null) {
             throw new InvalidValueException(

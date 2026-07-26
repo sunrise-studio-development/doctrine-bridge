@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -27,8 +27,6 @@ use Sunrise\Http\Router\Exception\HttpException;
 use Sunrise\Http\Router\Validation\ConstraintViolation\ValidatorConstraintViolationAdapter;
 use Sunrise\Http\Router\Validation\ConstraintViolationInterface as RouterConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationInterface as ValidatorConstraintViolationInterface;
-
-use function array_map;
 
 final readonly class RequestTerminationMiddleware implements MiddlewareInterface
 {
@@ -87,7 +85,7 @@ final readonly class RequestTerminationMiddleware implements MiddlewareInterface
 
         return (new HttpException($errorMessage, $errorStatusCode, previous: $e))
             ->setTranslationDomain(TranslationDomain::DOCTRINE_BRIDGE)
-            ->addConstraintViolation(...array_map(
+            ->addConstraintViolation(...\array_map(
                 static fn(ValidatorConstraintViolationInterface $violation): RouterConstraintViolationInterface =>
                     new ValidatorConstraintViolationAdapter($violation, match ($violation->getCode()) {
                         UniqueEntity::ERROR_CODE => TranslationDomain::DOCTRINE_BRIDGE,

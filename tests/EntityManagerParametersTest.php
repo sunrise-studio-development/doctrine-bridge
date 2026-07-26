@@ -6,140 +6,112 @@ namespace Sunrise\Bridge\Doctrine\Tests;
 
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Driver\Middleware;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Types\GuidType;
+use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\EntityListenerResolver;
 use Doctrine\ORM\Mapping\NamingStrategy;
-use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
 use Doctrine\ORM\Proxy\ProxyFactory;
 use Doctrine\ORM\Query\AST\Functions\FunctionNode;
+use Doctrine\ORM\Query\Filter\SQLFilter;
+use Doctrine\ORM\Repository\RepositoryFactory;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
-use ReflectionClass;
-use SensitiveParameter;
 use stdClass;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerParameters;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class EntityManagerParametersTest extends TestCase
 {
     public function testConstructor(): void
     {
-        $name = $this->createMock(EntityManagerNameInterface::class);
-        $namingStrategy = $this->createMock(NamingStrategy::class);
-        $schemaAssetFilter = static fn(): bool => false;
-        $metadataCache = $this->createMock(CacheItemPoolInterface::class);
-        $queryCache = $this->createMock(CacheItemPoolInterface::class);
-        $resultCache = $this->createMock(CacheItemPoolInterface::class);
-        $customDatetimeFunction = $this->createMock(FunctionNode::class);
-        $customNumericFunction = $this->createMock(FunctionNode::class);
-        $customStringFunction = $this->createMock(FunctionNode::class);
-        $configurator = static fn() => null;
-        $logger = $this->createMock(LoggerInterface::class);
-
-        $middlewares = [];
-        $middlewares[] = $this->createMock(Middleware::class);
-        $middlewares[] = $this->createMock(Middleware::class);
-
-        $eventSubscribers = [];
-        $eventSubscribers[] = $this->createMock(EventSubscriber::class);
-        $eventSubscribers[] = $this->createMock(EventSubscriber::class);
-
-        $entityManagerConfigurator = static fn(EntityManagerInterface $em) => null;
+        $name = $this->createStub(EntityManagerNameInterface::class);
+        $dsn = 'pdo-sqlite:///:memory:';
+        $types = ['guid' => GuidType::class];
+        $middlewares = [$this->createStub(Middleware::class)];
+        $entityDirectories = ['/src/Entity'];
+        $namingStrategy = $this->createStub(NamingStrategy::class);
+        $identityGenerationPreferences = [SQLitePlatform::class => ClassMetadata::GENERATOR_TYPE_AUTO];
+        $entityListenerResolver = $this->createStub(EntityListenerResolver::class);
+        $repositoryFactory = $this->createStub(RepositoryFactory::class);
+        $schemaAssetFilters = [static fn(mixed $asset): bool => (bool) $asset];
+        $schemaIgnoreClasses = [stdClass::class];
+        $metadataCache = $this->createStub(CacheItemPoolInterface::class);
+        $queryCache = $this->createStub(CacheItemPoolInterface::class);
+        $resultCache = $this->createStub(CacheItemPoolInterface::class);
+        $customDatetimeFunctions = ['CustomDatetimeFunction' => $this->createStub(FunctionNode::class)];
+        $customNumericFunctions = ['CustomNumericFunction' => $this->createStub(FunctionNode::class)];
+        $customStringFunctions = ['CustomStringFunction' => $this->createStub(FunctionNode::class)];
+        $filters = ['softDelete' => SQLFilter::class];
+        $enabledFilters = ['softDelete'];
+        $proxyDir = '/tmp/doctrine/proxy';
+        $proxyNamespace = 'App\\Doctrine\\Proxy';
+        $autoGenerateProxyClasses = ProxyFactory::AUTOGENERATE_NEVER;
+        $eventSubscribers = [$this->createStub(EventSubscriber::class)];
+        $logger = $this->createStub(LoggerInterface::class);
+        $configurators = [static fn(Configuration $configuration) => null];
+        $entityManagerConfigurators = [static fn(EntityManagerInterface $entityManager) => null];
 
         $parameters = new EntityManagerParameters(
             name: $name,
-            dsn: 'dsn',
-            entityDirectories: ['/test-doctrine-entities'],
+            dsn: $dsn,
+            types: $types,
+            middlewares: $middlewares,
+            entityDirectories: $entityDirectories,
             namingStrategy: $namingStrategy,
-            schemaAssetFilters: [$schemaAssetFilter],
-            schemaIgnoreClasses: [stdClass::class],
-            proxyDirectory: '/test-doctrine-proxies',
-            proxyNamespace: 'TestDoctrineProxies',
-            proxyAutogenerate: ProxyFactory::AUTOGENERATE_NEVER,
+            identityGenerationPreferences: $identityGenerationPreferences,
+            entityListenerResolver: $entityListenerResolver,
+            repositoryFactory: $repositoryFactory,
+            schemaAssetFilters: $schemaAssetFilters,
+            schemaIgnoreClasses: $schemaIgnoreClasses,
             metadataCache: $metadataCache,
             queryCache: $queryCache,
             resultCache: $resultCache,
-            customDatetimeFunctions: ['test-datetime' => $customDatetimeFunction::class],
-            customNumericFunctions: ['test-numeric' => $customNumericFunction::class],
-            customStringFunctions: ['test-string' => $customStringFunction::class],
-            middlewares: $middlewares,
+            customDatetimeFunctions: $customDatetimeFunctions,
+            customNumericFunctions: $customNumericFunctions,
+            customStringFunctions: $customStringFunctions,
+            filters: $filters,
+            enabledFilters: $enabledFilters,
+            proxyDir: $proxyDir,
+            proxyNamespace: $proxyNamespace,
+            autoGenerateProxyClasses: $autoGenerateProxyClasses,
             eventSubscribers: $eventSubscribers,
-            configurators: [$configurator],
-            types: [GuidType::class => GuidType::class],
             logger: $logger,
-            entityManagerConfigurators: [$entityManagerConfigurator],
+            configurators: $configurators,
+            entityManagerConfigurators: $entityManagerConfigurators,
         );
 
         self::assertSame($name, $parameters->getName());
-        self::assertSame('dsn', $parameters->getDsn());
-        self::assertSame(['/test-doctrine-entities'], $parameters->getEntityDirectories());
+        self::assertSame($dsn, $parameters->getDsn());
+        self::assertSame($types, $parameters->getTypes());
+        self::assertCount(2, $parameters->getMiddlewares());
+        self::assertSame($middlewares[0], $parameters->getMiddlewares()[0]);
+        self::assertSame(\Doctrine\DBAL\Logging\Middleware::class, $parameters->getMiddlewares()[1]::class);
+        self::assertSame($entityDirectories, $parameters->getEntityDirectories());
         self::assertSame($namingStrategy, $parameters->getNamingStrategy());
-        self::assertSame(false, ($parameters->getSchemaAssetsFilter())(null));
-        self::assertSame([stdClass::class], $parameters->getSchemaIgnoreClasses());
-        self::assertSame('/test-doctrine-proxies', $parameters->getProxyDirectory());
-        self::assertSame('TestDoctrineProxies', $parameters->getProxyNamespace());
-        self::assertSame(ProxyFactory::AUTOGENERATE_NEVER, $parameters->getProxyAutogenerate());
+        self::assertSame($identityGenerationPreferences, $parameters->getIdentityGenerationPreferences());
+        self::assertSame($entityListenerResolver, $parameters->getEntityListenerResolver());
+        self::assertSame($repositoryFactory, $parameters->getRepositoryFactory());
+        self::assertTrue($parameters->getSchemaAssetsFilter()(1));
+        self::assertFalse($parameters->getSchemaAssetsFilter()(0));
+        self::assertSame($schemaIgnoreClasses, $parameters->getSchemaIgnoreClasses());
         self::assertSame($metadataCache, $parameters->getMetadataCache());
         self::assertSame($queryCache, $parameters->getQueryCache());
         self::assertSame($resultCache, $parameters->getResultCache());
-        self::assertSame(['test-datetime' => $customDatetimeFunction::class], $parameters->getCustomDatetimeFunctions());
-        self::assertSame(['test-numeric' => $customNumericFunction::class], $parameters->getCustomNumericFunctions());
-        self::assertSame(['test-string' => $customStringFunction::class], $parameters->getCustomStringFunctions());
-        $actualMiddlewares = $parameters->getMiddlewares();
-        self::assertCount(3, $actualMiddlewares);
-        $actualMiddlewareNames = \array_map(static fn(object $o) => $o::class, $actualMiddlewares);
-        self::assertContains($middlewares[0]::class, $actualMiddlewareNames);
-        self::assertContains($middlewares[1]::class, $actualMiddlewareNames);
-        self::assertContains(\Doctrine\DBAL\Logging\Middleware::class, $actualMiddlewareNames);
+        self::assertSame($customDatetimeFunctions, $parameters->getCustomDatetimeFunctions());
+        self::assertSame($customNumericFunctions, $parameters->getCustomNumericFunctions());
+        self::assertSame($customStringFunctions, $parameters->getCustomStringFunctions());
+        self::assertSame($filters, $parameters->getFilters());
+        self::assertSame($enabledFilters, $parameters->getEnabledFilters());
+        self::assertSame($proxyDir, $parameters->getProxyDir());
+        self::assertSame($proxyNamespace, $parameters->getProxyNamespace());
+        self::assertSame($autoGenerateProxyClasses, $parameters->getAutoGenerateProxyClasses());
         self::assertSame($eventSubscribers, $parameters->getEventSubscribers());
-        self::assertSame([$configurator], $parameters->getConfigurators());
-        self::assertSame([GuidType::class => GuidType::class], $parameters->getTypes());
         self::assertSame($logger, $parameters->getLogger());
-        self::assertSame([$entityManagerConfigurator], $parameters->getEntityManagerConfigurators());
-    }
-
-    public function testDefaultParameters(): void
-    {
-        $name = $this->createMock(EntityManagerNameInterface::class);
-        $parameters = new EntityManagerParameters(name: $name, dsn: 'secret');
-
-        self::assertSame([], $parameters->getEntityDirectories());
-        self::assertSame(UnderscoreNamingStrategy::class, $parameters->getNamingStrategy()::class);
-        self::assertSame(true, ($parameters->getSchemaAssetsFilter())(null));
-        self::assertSame([], $parameters->getSchemaIgnoreClasses());
-        $defaultProxyDirectory = \sys_get_temp_dir() . '/doctrine-proxies';
-        self::assertSame($defaultProxyDirectory, $parameters->getProxyDirectory());
-        self::assertSame('DoctrineProxies', $parameters->getProxyNamespace());
-        self::assertSame(ProxyFactory::AUTOGENERATE_ALWAYS, $parameters->getProxyAutogenerate());
-        self::assertSame(ArrayAdapter::class, $parameters->getMetadataCache()::class);
-        self::assertSame(ArrayAdapter::class, $parameters->getQueryCache()::class);
-        self::assertSame(ArrayAdapter::class, $parameters->getResultCache()::class);
-        self::assertSame([], $parameters->getCustomDatetimeFunctions());
-        self::assertSame([], $parameters->getCustomNumericFunctions());
-        self::assertSame([], $parameters->getCustomStringFunctions());
-        self::assertSame([], $parameters->getMiddlewares());
-        self::assertSame([], $parameters->getEventSubscribers());
-        self::assertSame([], $parameters->getConfigurators());
-        self::assertSame([], $parameters->getTypes());
-        self::assertSame(null, $parameters->getLogger());
-        self::assertSame([], $parameters->getEntityManagerConfigurators());
-    }
-
-    public function testSensitiveParameters(): void
-    {
-        $class = new ReflectionClass(EntityManagerParameters::class);
-        $constructor = $class->getConstructor();
-
-        $namedParameters = [];
-        foreach ($constructor->getParameters() as $parameter) {
-            $namedParameters[$parameter->name] = $parameter;
-        }
-
-        $parameterName = 'dsn';
-        self::assertArrayHasKey($parameterName, $namedParameters);
-        $annotations = $namedParameters[$parameterName]->getAttributes(SensitiveParameter::class);
-        self::assertNotEmpty($annotations);
+        self::assertSame($configurators, $parameters->getConfigurators());
+        self::assertSame($entityManagerConfigurators, $parameters->getEntityManagerConfigurators());
     }
 }

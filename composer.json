@@ -4,39 +4,37 @@
   "description": "Doctrine Bridge",
   "license": "MIT",
   "keywords": [
-    "fenric",
-    "sunrise",
-    "bridge",
     "doctrine"
   ],
   "authors": [
     {
-      "name": "Anatoly Nekhay",
+      "name": "Anatolii Nekhai",
       "email": "afenric@gmail.com",
       "homepage": "https://github.com/fenric"
     }
   ],
   "require": {
     "php": ">=8.2",
-    "doctrine/orm": "^3.3",
+    "doctrine/orm": "^3.4",
     "psr/cache": "^1.0 || ^2.0 || ^3.0",
     "psr/log": "^1.0 || ^2.0 || ^3.0",
     "sunrise/translator": "^1.0"
   },
   "require-dev": {
-    "php-di/php-di": "^7.0",
-    "phpstan/phpstan": "^2.1",
+    "php-di/php-di": "^7.1",
+    "phpstan/phpstan": "^2.2",
     "phpunit/phpunit": "^11.5",
-    "squizlabs/php_codesniffer": "^3.11",
-    "sunrise/http-router": "^3.0",
-    "sunrise/hydrator": "^3.18",
-    "symfony/cache": "^7.3",
-    "symfony/validator": "^7.2",
-    "vimeo/psalm": "^6.5"
+    "slevomat/coding-standard": "^8.22",
+    "sunrise/http-router": "^3.4",
+    "sunrise/hydrator": "^3.20",
+    "symfony/cache": "^7.4",
+    "symfony/validator": "^7.4",
+    "vimeo/psalm": "^6.16"
   },
   "conflict": {
     "sunrise/doctrine-bridge": "*",
-    "sunrise/hydrator": "<3.18"
+    "sunrise/http-router": "<3.3",
+    "sunrise/hydrator": "<3.20"
   },
   "autoload": {
     "psr-4": {
@@ -61,6 +59,9 @@
     ]
   },
   "config": {
-    "sort-packages": true
+    "sort-packages": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
   }
 }

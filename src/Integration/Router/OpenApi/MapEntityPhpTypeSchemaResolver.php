@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -21,6 +21,7 @@ use Sunrise\Http\Router\OpenApi\OpenApiPhpTypeSchemaResolverInterface;
 use Sunrise\Http\Router\OpenApi\OpenApiPhpTypeSchemaResolverManagerAwareInterface;
 use Sunrise\Http\Router\OpenApi\OpenApiPhpTypeSchemaResolverManagerInterface;
 use Sunrise\Http\Router\OpenApi\Type;
+use Sunrise\Http\Router\OpenApi\TypeInterface;
 use Sunrise\Hydrator\Annotation\Subtype;
 
 /**
@@ -38,32 +39,34 @@ final readonly class MapEntityPhpTypeSchemaResolver implements
         $this->openApiPhpTypeSchemaResolverManager = $openApiPhpTypeSchemaResolverManager;
     }
 
-    public function supportsPhpType(Type $phpType, Reflector $phpTypeHolder): bool
+    public function supportsPhpType(TypeInterface $phpType, Reflector $phpTypeHolder): bool
     {
         return $phpTypeHolder instanceof ReflectionProperty
             && $phpTypeHolder->getAttributes(MapEntity::class) !== []
-            && $phpTypeHolder->getAttributes(Subtype::class) !== [];
+            && $phpTypeHolder->getAttributes(Subtype::class, ReflectionAttribute::IS_INSTANCEOF) !== [];
     }
 
     /**
      * @inheritDoc
      */
-    public function resolvePhpTypeSchema(Type $phpType, Reflector $phpTypeHolder): array
+    public function resolvePhpTypeSchema(TypeInterface $phpType, Reflector $phpTypeHolder): array
     {
         if (! $phpTypeHolder instanceof ReflectionProperty) {
             return [];
         }
 
-        /** @var list<ReflectionAttribute<Subtype>> $annotations */
-        $annotations = $phpTypeHolder->getAttributes(Subtype::class);
-        if ($annotations === []) {
+        /** @var Subtype|null $valueType */
+        $valueType = ($phpTypeHolder->getAttributes(
+            Subtype::class,
+            ReflectionAttribute::IS_INSTANCEOF,
+        )[0] ?? null)?->newInstance();
+
+        if ($valueType === null) {
             return [];
         }
 
-        $annotation = $annotations[0]->newInstance();
-
         return $this->openApiPhpTypeSchemaResolverManager->resolvePhpTypeSchema(
-            new Type($annotation->name, $annotation->allowsNull),
+            new Type($valueType->name, $valueType->allowsNull),
             $phpTypeHolder,
         );
     }

@@ -11,7 +11,6 @@ use Doctrine\ORM\LazyCriteriaCollection;
 use Doctrine\ORM\QueryBuilder;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 use Sunrise\Bridge\Doctrine\AbstractEntityRepository;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;

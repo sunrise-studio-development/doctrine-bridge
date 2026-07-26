@@ -16,10 +16,11 @@ use stdClass;
 use Stringable;
 use Sunrise\Bridge\Doctrine\EntityManagerRegistryInterface;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\MapEntity;
+use Sunrise\Bridge\Doctrine\Integration\Hydrator\Annotation\ValueType;
 use Sunrise\Bridge\Doctrine\Integration\Hydrator\TypeConverter\MapEntityTypeConverter;
 use Sunrise\Bridge\Doctrine\Tests\TestKit;
-use Sunrise\Hydrator\AnnotationReaderInterface;
 use Sunrise\Hydrator\Annotation\Subtype;
+use Sunrise\Hydrator\AnnotationReaderInterface;
 use Sunrise\Hydrator\Dictionary\ErrorMessage;
 use Sunrise\Hydrator\Exception\InvalidObjectException;
 use Sunrise\Hydrator\Exception\InvalidValueException;
@@ -91,7 +92,7 @@ final class MapEntityTypeConverterTest extends TestCase
         yield [TestKit::class];
     }
 
-    public function testSubtype(): void
+    public function testValueType(): void
     {
         $expectedEntity = new class {
         };
@@ -113,7 +114,7 @@ final class MapEntityTypeConverterTest extends TestCase
 
                 match ($name) {
                     MapEntity::class => yield new MapEntity(),
-                    Subtype::class => yield new Subtype('int', true),
+                    Subtype::class => yield new ValueType('int', true),
                 };
             }
         );

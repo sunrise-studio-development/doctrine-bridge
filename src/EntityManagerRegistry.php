@@ -3,8 +3,8 @@
 /**
  * It's free open-source software released under the MIT License.
  *
- * @author Anatoly Nekhay <afenric@gmail.com>
- * @copyright Copyright (c) 2025, Anatoly Nekhay
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
  * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
  * @link https://github.com/sunrise-studio-development/doctrine-bridge
  */
@@ -13,10 +13,11 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception as DatabaseException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Sunrise\Bridge\Doctrine\Exception\EntityManagerNotConfiguredException;
-use Throwable;
 
 final class EntityManagerRegistry implements EntityManagerRegistryInterface
 {
@@ -79,25 +80,38 @@ final class EntityManagerRegistry implements EntityManagerRegistryInterface
         if (!$this->entityManagers[$entityManagerKey]->isOpen()) {
             unset($this->entityManagers[$entityManagerKey]);
 
-            $this->logger?->warning('A closed entity manager was detected and shut down.', [
+            $this->logger?->warning('A closed entity manager was detected and discarded.', [
                 'em' => $entityManagerKey,
             ]);
 
             return;
         }
 
-        $connection = $this->entityManagers[$entityManagerKey]->getConnection();
-        if ($connection->isConnected()) {
-            try {
-                $connection->executeQuery($connection->getDatabasePlatform()->getDummySelectSQL());
-            } catch (Throwable $e) {
-                $connection->close();
+        $databaseConnection = $this->entityManagers[$entityManagerKey]->getConnection();
 
-                $this->logger?->warning('An unstable database connection was detected and closed.', [
-                    'em' => $entityManagerKey,
-                    'error' => $e,
-                ]);
-            }
+        $this->checkDatabaseConnectionHealth($entityManagerKey, $databaseConnection);
+    }
+
+    private function checkDatabaseConnectionHealth(string $entityManagerKey, Connection $databaseConnection): void
+    {
+        if (!$databaseConnection->isConnected()) {
+            return;
+        }
+
+        // Do not interfere with an active transaction; let connection failures surface naturally.
+        if ($databaseConnection->isTransactionActive()) {
+            return;
+        }
+
+        try {
+            $databaseConnection->executeQuery($databaseConnection->getDatabasePlatform()->getDummySelectSQL());
+        } catch (DatabaseException $e) {
+            $databaseConnection->close();
+
+            $this->logger?->warning('An unstable database connection was detected and closed.', [
+                'em' => $entityManagerKey,
+                'error' => $e,
+            ]);
         }
     }
 }

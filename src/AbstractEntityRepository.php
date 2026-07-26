@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * It's free open-source software released under the MIT License.
+ *
+ * @author Anatolii Nekhai <afenric@gmail.com>
+ * @copyright Copyright (c) 2025, Anatolii Nekhai
+ * @license https://github.com/sunrise-studio-development/doctrine-bridge/blob/master/LICENSE
+ * @link https://github.com/sunrise-studio-development/doctrine-bridge
+ */
+
 declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
@@ -94,8 +103,12 @@ abstract class AbstractEntityRepository implements ObjectRepository, Selectable
      *
      * @see EntityRepository::findBy()
      */
-    final public function findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null): array
-    {
+    final public function findBy(
+        array $criteria,
+        ?array $orderBy = null,
+        ?int $limit = null,
+        ?int $offset = null,
+    ): array {
         return $this->getEntityRepository()->findBy($criteria, $orderBy, $limit, $offset);
     }
 
