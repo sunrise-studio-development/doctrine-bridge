@@ -106,7 +106,7 @@ final class EntityRepositoryTest extends TestCase
     public function testMatching(): void
     {
         $entityRepository = self::createEntityRepository($this->entityManagerRegistry, $this->entityManagerName);
-        $criteria = $this->createMock(Criteria::class);
+        $criteria = Criteria::create();
         $criteriaCollection = $this->createMock(LazyCriteriaCollection::class);
 
         $this->entityManagerRegistry->expects($this->once())->method('getEntityManager')->with($this->entityManagerName)->willReturn($this->entityManager);
