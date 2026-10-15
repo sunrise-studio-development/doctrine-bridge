@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sunrise\Bridge\Doctrine;
 
+use Doctrine\Common\Collections\AbstractLazyCollection;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\Selectable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -115,9 +116,11 @@ abstract class AbstractEntityRepository implements ObjectRepository, Selectable
     /**
      * @inheritDoc
      *
+     * @return AbstractLazyCollection<int, T>
+     *
      * @see EntityRepository::matching()
      */
-    final public function matching(Criteria $criteria)
+    final public function matching(Criteria $criteria): AbstractLazyCollection
     {
         return $this->getEntityRepository()->matching($criteria);
     }
