@@ -64,11 +64,36 @@ final class EntityManagerRegistry implements EntityManagerRegistryInterface
 
         $this->checkEntityManagerHealth($entityManagerKey);
 
-        return $this->entityManagers[$entityManagerKey] ??= $this->entityManagerFactory
-            ->createEntityManagerFromParameters(
-                $this->entityManagerParametersMap[$entityManagerKey]
-                    ?? throw new EntityManagerNotConfiguredException($entityManagerName)
-            );
+        return $this->entityManagers[$entityManagerKey]
+            ??= $this->createEntityManager($entityManagerName);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function useDisposableEntityManager(
+        callable $callback,
+        ?EntityManagerNameInterface $entityManagerName = null,
+    ): mixed {
+        $entityManager = $this->createEntityManager($entityManagerName);
+
+        try {
+            return $callback($entityManager);
+        } finally {
+            $entityManager->getConnection()->close();
+            $entityManager->close();
+        }
+    }
+
+    private function createEntityManager(?EntityManagerNameInterface $entityManagerName = null): EntityManagerInterface
+    {
+        $entityManagerName ??= $this->defaultEntityManagerName;
+        $entityManagerKey = $entityManagerName->getValue();
+
+        $entityManagerParameters = $this->entityManagerParametersMap[$entityManagerKey]
+            ?? throw new EntityManagerNotConfiguredException($entityManagerName);
+
+        return $this->entityManagerFactory->createEntityManagerFromParameters($entityManagerParameters);
     }
 
     private function checkEntityManagerHealth(string $entityManagerKey): void

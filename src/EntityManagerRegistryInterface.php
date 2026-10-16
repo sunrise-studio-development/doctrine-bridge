@@ -24,4 +24,20 @@ interface EntityManagerRegistryInterface
      * @throws EntityManagerNotConfiguredException
      */
     public function getEntityManager(?EntityManagerNameInterface $entityManagerName = null): EntityManagerInterface;
+
+    /**
+     * @param callable(EntityManagerInterface): T $callback
+     *
+     * @return T
+     *
+     * @template T
+     *
+     * @throws EntityManagerNotConfiguredException
+     *
+     * @since 3.10.0
+     */
+    public function useDisposableEntityManager(
+        callable $callback,
+        ?EntityManagerNameInterface $entityManagerName = null,
+    ): mixed;
 }
