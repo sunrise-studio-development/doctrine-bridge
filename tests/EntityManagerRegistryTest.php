@@ -11,6 +11,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Sunrise\Bridge\Doctrine\EntityManagerFactoryInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerNameInterface;
 use Sunrise\Bridge\Doctrine\EntityManagerParametersInterface;
@@ -60,7 +61,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerParameters->expects($this->once())->method('getName')->willReturn($this->mockEntityManagerName('default', calls: 1));
         $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
         $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
-        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 1));
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 2));
         self::assertFalse($entityManagerRegistry->hasEntityManager($this->mockEntityManagerName('default', calls: 1)));
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertTrue($entityManagerRegistry->hasEntityManager($this->mockEntityManagerName('default', calls: 1)));
@@ -73,7 +74,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
         $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 0));
         self::assertFalse($entityManagerRegistry->hasEntityManager($this->mockEntityManagerName('foo', calls: 1)));
-        self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager($this->mockEntityManagerName('foo', calls: 1)));
+        self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager($this->mockEntityManagerName('foo', calls: 2)));
         self::assertTrue($entityManagerRegistry->hasEntityManager($this->mockEntityManagerName('foo', calls: 1)));
     }
 
@@ -83,7 +84,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
         $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
         $this->mockedEntityManager->expects($this->never())->method('isOpen');
-        self::assertSame($this->mockedEntityManager, $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 1))->getEntityManager());
+        self::assertSame($this->mockedEntityManager, $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 2))->getEntityManager());
     }
 
     public function testChecksEntityManagerHealthOnSubsequentCalls(): void
@@ -92,7 +93,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
         $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
         $this->mockedEntityManager->expects($this->exactly(2))->method('isOpen')->willReturn(true);
-        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 3));
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 4));
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
@@ -105,7 +106,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
         $this->mockedEntityManager->expects($this->any())->method('getConnection')->willReturn($this->mockedConnection);
         $this->mockedConnection->expects($this->never())->method('isConnected');
-        self::assertSame($this->mockedEntityManager, $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 1))->getEntityManager());
+        self::assertSame($this->mockedEntityManager, $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 2))->getEntityManager());
     }
 
     public function testChecksConnectionHealthOnSubsequentCalls(): void
@@ -116,7 +117,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManager->expects($this->any())->method('isOpen')->willReturn(true);
         $this->mockedEntityManager->expects($this->exactly(2))->method('getConnection')->willReturn($this->mockedConnection);
         $this->mockedConnection->expects($this->exactly(2))->method('isConnected')->willReturn(false);
-        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 3));
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 4));
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
@@ -129,7 +130,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedEntityManagerFactory->expects($this->exactly(3))->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
         $this->mockedEntityManager->expects($this->exactly(2))->method('isOpen')->willReturn(false);
         $this->mockedLogger->expects($this->exactly(2))->method('warning')->with('A closed entity manager was detected and discarded.', ['em' => 'default']);
-        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 3), withLogger: true);
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 6), withLogger: true);
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
@@ -150,7 +151,7 @@ final class EntityManagerRegistryTest extends TestCase
         $this->mockedConnection->expects($this->exactly(2))->method('executeQuery')->with('SELECT 1')->willThrowException($error);
         $this->mockedConnection->expects($this->exactly(2))->method('close');
         $this->mockedLogger->expects($this->exactly(2))->method('warning')->with('An unstable database connection was detected and closed.', ['em' => 'default', 'error' => $error]);
-        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 3), withLogger: true);
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 4), withLogger: true);
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
         self::assertSame($this->mockedEntityManager, $entityManagerRegistry->getEntityManager());
@@ -162,6 +163,122 @@ final class EntityManagerRegistryTest extends TestCase
         $entityManagerRegistry = $this->createEntityManagerRegistry();
         $this->expectException(EntityManagerNotConfiguredException::class);
         $this->expectExceptionMessage('The entity manager "unknown" is not configured.');
-        $entityManagerRegistry->getEntityManager($this->mockEntityManagerName('unknown', calls: 2));
+        $entityManagerRegistry->getEntityManager($this->mockEntityManagerName('unknown', calls: 3));
+    }
+
+    public function testUsesDefaultDisposableEntityManagerWhenNoneProvided(): void
+    {
+        $this->mockedEntityManagerParameters->expects($this->once())->method('getName')->willReturn($this->mockEntityManagerName('default', calls: 1));
+        $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
+        $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
+        $this->mockedEntityManager->expects($this->once())->method('getConnection')->willReturn($this->mockedConnection);
+        $this->mockedConnection->expects($this->once())->method('close');
+        $this->mockedEntityManager->expects($this->once())->method('close');
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 1));
+        $result = $entityManagerRegistry->useDisposableEntityManager(function (EntityManagerInterface $entityManager): string {
+            self::assertSame($this->mockedEntityManager, $entityManager);
+            return 'foo';
+        });
+        self::assertSame('foo', $result);
+    }
+
+    public function testUsesGivenDisposableEntityManagerInsteadOfDefault(): void
+    {
+        $this->mockedEntityManagerParameters->expects($this->once())->method('getName')->willReturn($this->mockEntityManagerName('foo', calls: 1));
+        $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
+        $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
+        $this->mockedEntityManager->expects($this->once())->method('getConnection')->willReturn($this->mockedConnection);
+        $this->mockedConnection->expects($this->once())->method('close');
+        $this->mockedEntityManager->expects($this->once())->method('close');
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 0));
+        $result = $entityManagerRegistry->useDisposableEntityManager(function (EntityManagerInterface $entityManager): void {
+            self::assertSame($this->mockedEntityManager, $entityManager);
+        }, $this->mockEntityManagerName('foo', calls: 1));
+        self::assertNull($result);
+    }
+
+    public function testCreatesNewDisposableEntityManagerOnEachCall(): void
+    {
+        $this->mockedEntityManagerParameters->expects($this->once())->method('getName')->willReturn($this->mockEntityManagerName('default', calls: 1));
+        $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
+        $anotherEntityManager = $this->createMock(EntityManagerInterface::class);
+        $anotherConnection = $this->createMock(Connection::class);
+        $this->mockedEntityManagerFactory->expects($this->exactly(2))->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager, $anotherEntityManager);
+        $this->mockedEntityManager->expects($this->once())->method('getConnection')->willReturn($this->mockedConnection);
+        $this->mockedConnection->expects($this->once())->method('close');
+        $this->mockedEntityManager->expects($this->once())->method('close');
+        $anotherEntityManager->expects($this->once())->method('getConnection')->willReturn($anotherConnection);
+        $anotherConnection->expects($this->once())->method('close');
+        $anotherEntityManager->expects($this->once())->method('close');
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 4));
+        self::assertSame($this->mockedEntityManager, $entityManagerRegistry->useDisposableEntityManager(static fn(EntityManagerInterface $entityManager): EntityManagerInterface => $entityManager));
+        self::assertFalse($entityManagerRegistry->hasEntityManager());
+        self::assertSame($anotherEntityManager, $entityManagerRegistry->useDisposableEntityManager(static fn(EntityManagerInterface $entityManager): EntityManagerInterface => $entityManager));
+        self::assertFalse($entityManagerRegistry->hasEntityManager());
+    }
+
+    public function testDoesNotReuseOrReplaceCachedEntityManagerForDisposableUse(): void
+    {
+        $this->mockedEntityManagerParameters->expects($this->once())->method('getName')->willReturn($this->mockEntityManagerName('default', calls: 1));
+        $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
+        $cachedEntityManager = $this->createMock(EntityManagerInterface::class);
+        $cachedConnection = $this->createMock(Connection::class);
+        $this->mockedEntityManagerFactory->expects($this->exactly(2))->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($cachedEntityManager, $this->mockedEntityManager);
+        $cachedEntityManager->expects($this->once())->method('isOpen')->willReturn(true);
+        $cachedEntityManager->expects($this->once())->method('getConnection')->willReturn($cachedConnection);
+        $cachedConnection->expects($this->once())->method('isConnected')->willReturn(false);
+        $cachedConnection->expects($this->never())->method('close');
+        $cachedEntityManager->expects($this->never())->method('close');
+        $this->mockedEntityManager->expects($this->once())->method('getConnection')->willReturn($this->mockedConnection);
+        $this->mockedConnection->expects($this->once())->method('close');
+        $this->mockedEntityManager->expects($this->once())->method('close');
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 4));
+        self::assertSame($cachedEntityManager, $entityManagerRegistry->getEntityManager());
+        self::assertSame($this->mockedEntityManager, $entityManagerRegistry->useDisposableEntityManager(static fn(EntityManagerInterface $entityManager): EntityManagerInterface => $entityManager));
+        self::assertSame($cachedEntityManager, $entityManagerRegistry->getEntityManager());
+    }
+
+    public function testClosesDisposableEntityManagerAndConnectionWhenCallbackThrows(): void
+    {
+        $this->mockedEntityManagerParameters->expects($this->once())->method('getName')->willReturn($this->mockEntityManagerName('default', calls: 1));
+        $this->mockedEntityManagerParametersList[] = $this->mockedEntityManagerParameters;
+        $this->mockedEntityManagerFactory->expects($this->once())->method('createEntityManagerFromParameters')->with($this->mockedEntityManagerParameters)->willReturn($this->mockedEntityManager);
+        $this->mockedEntityManager->expects($this->once())->method('getConnection')->willReturn($this->mockedConnection);
+        $this->mockedConnection->expects($this->once())->method('close');
+        $this->mockedEntityManager->expects($this->once())->method('close');
+        $exception = new RuntimeException('foo');
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 1));
+        $this->expectException(RuntimeException::class);
+        try {
+            $entityManagerRegistry->useDisposableEntityManager(function (EntityManagerInterface $entityManager) use ($exception): never {
+                self::assertSame($this->mockedEntityManager, $entityManager);
+                throw $exception;
+            });
+        } catch (RuntimeException $e) {
+            self::assertSame($exception, $e);
+            throw $e;
+        }
+    }
+
+    public function testNotConfiguredDisposableEntityManager(): void
+    {
+        $this->mockedEntityManagerFactory->expects($this->never())->method('createEntityManagerFromParameters');
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 0));
+        $this->expectException(EntityManagerNotConfiguredException::class);
+        $this->expectExceptionMessage('The entity manager "unknown" is not configured.');
+        $entityManagerRegistry->useDisposableEntityManager(static function (): void {
+            self::fail('The callback must not be called.');
+        }, $this->mockEntityManagerName('unknown', calls: 2));
+    }
+
+    public function testNotConfiguredDefaultDisposableEntityManager(): void
+    {
+        $this->mockedEntityManagerFactory->expects($this->never())->method('createEntityManagerFromParameters');
+        $entityManagerRegistry = $this->createEntityManagerRegistry(defaultEntityManagerName: $this->mockEntityManagerName('default', calls: 2));
+        $this->expectException(EntityManagerNotConfiguredException::class);
+        $this->expectExceptionMessage('The entity manager "default" is not configured.');
+        $entityManagerRegistry->useDisposableEntityManager(static function (): void {
+            self::fail('The callback must not be called.');
+        });
     }
 }
